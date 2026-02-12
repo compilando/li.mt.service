@@ -1,9 +1,9 @@
-import { ComponentExample } from "@/components/component-example";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import SignInForm from "./form";
 
-export default async function Page() {
+export default async function SignIn() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -12,5 +12,5 @@ export default async function Page() {
     redirect("/app");
   }
 
-  return <ComponentExample />;
+  return <SignInForm />;
 }
