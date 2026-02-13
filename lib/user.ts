@@ -1,15 +1,14 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
-export default async function Page() {
+export async function getSession() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  return session;
+}
 
-  if (session) {
-    redirect("/app");
-  }
-
-  return null;
+export async function getUser() {
+  const session = await getSession();
+  return session?.user ?? null;
 }

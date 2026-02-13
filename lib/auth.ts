@@ -1,8 +1,14 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, User } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
-import { magicLink } from "better-auth/plugins";
+import { magicLink, organization } from "better-auth/plugins";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import prisma from "@/lib/prisma";
+import { createPersonalOrganization } from "@/lib/organization/utils";
 
 export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -20,7 +26,17 @@ export const auth = betterAuth({
       },
     }),
     nextCookies(),
+    organization(),
   ],
-  /** if no database is provided, the user data will be stored in memory.
-   * Make sure to provide a database to persist user data **/
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await createPersonalOrganization({
+            userId: user.id,
+          });
+        },
+      },
+    },
+  },
 });

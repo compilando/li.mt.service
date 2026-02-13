@@ -1,16 +1,13 @@
-import { ComponentExample } from "@/components/component-example";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import Dashboard from "@/components/dashboard";
+import { getUser } from "@/lib/user";
 import { redirect } from "next/navigation";
 
 export default async function App() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const user = await getUser();
 
-  if (!session) {
+  if (!user) {
     redirect("/signin");
   }
 
-  return <ComponentExample />;
+  return <Dashboard user={user} />;
 }
