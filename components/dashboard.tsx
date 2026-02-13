@@ -5,8 +5,23 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Organization, User } from "@/generated/prisma/client";
 import { useEffect, useState } from "react";
 import { useListOrganizations } from "@/lib/auth-client";
+import { Link } from "lucide-react";
 
-export default function Dashboard({ user }: { user: User }) {
+const items = [
+  {
+    title: "Links",
+    url: "/app/links",
+    icon: Link,
+  },
+];
+
+export default function Dashboard({
+  user,
+  children,
+}: {
+  user: User;
+  children: React.ReactNode;
+}) {
   const organizations = useListOrganizations();
   const [activeOrganization, setActiveOrganization] =
     useState<Organization | null>(null);
@@ -20,9 +35,21 @@ export default function Dashboard({ user }: { user: User }) {
     }
   }, [organizations]);
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} organizations={organizations.data as Organization[] ?? []} activeOrganization={activeOrganization} setActiveOrganization={setActiveOrganization} />
-      <main>test</main>
-    </SidebarProvider>
+    <div className="bg-[var(--secondary)]">
+      <SidebarProvider>
+        <AppSidebar
+          items={items}
+          user={user}
+          organizations={(organizations.data as Organization[]) ?? []}
+          activeOrganization={activeOrganization}
+          setActiveOrganization={setActiveOrganization}
+        />
+        <main className="min-h-screen w-full p-2 relative pl-0">
+          <div className="shadow-xs p-8 w-full h-full rounded-md bg-[var(--background)]">
+            {children}
+          </div>
+        </main>
+      </SidebarProvider>
+    </div>
   );
 }

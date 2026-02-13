@@ -28,7 +28,9 @@ export function OrganizationSwitcher({
 }: {
   organizations: Organization[];
   activeOrganization: Organization | null;
-  setActiveOrganization: React.Dispatch<React.SetStateAction<Organization | null>>;
+  setActiveOrganization: React.Dispatch<
+    React.SetStateAction<Organization | null>
+  >;
 }) {
   const { isMobile } = useSidebar();
 
@@ -46,7 +48,12 @@ export function OrganizationSwitcher({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="overflow-clip bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Avatar square size={32} className="!size-8" name={activeOrganization.name} />
+                <Avatar
+                  square
+                  size={32}
+                  className="!size-8"
+                  name={activeOrganization.name}
+                />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">

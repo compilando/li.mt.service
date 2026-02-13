@@ -88,6 +88,7 @@ model Organization {
   invitations Invitation[]
   links       Link[]
   plan        String       @default("free")
+  domains     Domain[]
 
   @@unique([slug])
   @@map("organization")
@@ -148,11 +149,13 @@ model Link {
 }
 
 model Domain {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  links     Link[]
+  id             String       @id @default(cuid())
+  name           String       @unique
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  links          Link[]
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model LinkStats {
