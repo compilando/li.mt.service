@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useActiveOrganization } from "@/hooks/use-active-organization";
-import { DashboardHeader } from "@/components/dashboard/header";
+import { DashboardHeader, DashboardPageHeader } from "@/components/dashboard/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Crown, Shield, User, Trash2, Mail, X, UserPlus } from "lucide-react";
+import { Crown, Shield, User, Trash2, Mail, X, UserPlus, Settings } from "lucide-react";
 import {
     updateOrganization,
     deleteOrganization,
@@ -212,11 +212,12 @@ export function SettingsPageContent() {
 
     if (!activeOrganization) {
         return (
-            <div className="space-y-6">
-                <DashboardHeader title="Team Settings">
+            <>
+                <DashboardHeader title="Settings" icon={Settings} />
+                <div className="flex-1 overflow-auto p-8">
                     <p className="text-sm text-muted-foreground">No organization selected</p>
-                </DashboardHeader>
-            </div>
+                </div>
+            </>
         );
     }
 
@@ -226,301 +227,304 @@ export function SettingsPageContent() {
     const isAdmin = currentUserMember?.role === "admin" || isOwner;
 
     return (
-        <div className="space-y-6">
-            <DashboardHeader title="Team Settings">
-                <p className="text-sm text-muted-foreground">
-                    Manage {activeOrganization.name} settings and members
-                </p>
-            </DashboardHeader>
+        <>
+            <DashboardHeader title="Settings" icon={Settings} />
 
-            <Tabs defaultValue="general" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="invitations">Invitations</TabsTrigger>
-                    {!isPersonalOrg && <TabsTrigger value="danger">Danger Zone</TabsTrigger>}
-                </TabsList>
+            <div className="flex-1 overflow-auto p-8">
+                <DashboardPageHeader
+                    title="Team Settings"
+                    description={`Manage ${activeOrganization.name} settings and members`}
+                />
 
-                <TabsContent value="general" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Team Information</CardTitle>
-                            <CardDescription>
-                                Update your team's basic information
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="org-name">Team name</Label>
-                                <Input
-                                    id="org-name"
-                                    value={orgName}
-                                    onChange={(e) => setOrgName(e.target.value)}
-                                    disabled={!isAdmin}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="org-slug">Slug</Label>
-                                <Input
-                                    id="org-slug"
-                                    value={activeOrganization.slug}
-                                    disabled
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    The slug cannot be changed
-                                </p>
-                            </div>
-                            {updateError && (
-                                <p className="text-sm text-red-600">{updateError}</p>
-                            )}
-                            {updateSuccess && (
-                                <p className="text-sm text-green-600">Settings updated successfully!</p>
-                            )}
-                            {isAdmin && (
-                                <Button
-                                    onClick={handleUpdateOrg}
-                                    disabled={isUpdating || orgName === activeOrganization.name}
-                                >
-                                    {isUpdating ? "Updating..." : "Save changes"}
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                <Tabs defaultValue="general" className="space-y-4">
+                    <TabsList>
+                        <TabsTrigger value="general">General</TabsTrigger>
+                        <TabsTrigger value="members">Members</TabsTrigger>
+                        <TabsTrigger value="invitations">Invitations</TabsTrigger>
+                        {!isPersonalOrg && <TabsTrigger value="danger">Danger Zone</TabsTrigger>}
+                    </TabsList>
 
-                <TabsContent value="members" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Team Members</CardTitle>
-                                    <CardDescription>
-                                        Manage who has access to this team
-                                    </CardDescription>
+                    <TabsContent value="general" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Team Information</CardTitle>
+                                <CardDescription>
+                                    Update your team's basic information
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="org-name">Team name</Label>
+                                    <Input
+                                        id="org-name"
+                                        value={orgName}
+                                        onChange={(e) => setOrgName(e.target.value)}
+                                        disabled={!isAdmin}
+                                    />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="org-slug">Slug</Label>
+                                    <Input
+                                        id="org-slug"
+                                        value={activeOrganization.slug}
+                                        disabled
+                                    />
+                                    <p className="text-sm text-muted-foreground">
+                                        The slug cannot be changed
+                                    </p>
+                                </div>
+                                {updateError && (
+                                    <p className="text-sm text-red-600">{updateError}</p>
+                                )}
+                                {updateSuccess && (
+                                    <p className="text-sm text-green-600">Settings updated successfully!</p>
+                                )}
                                 {isAdmin && (
-                                    <Button onClick={() => setIsInviteDialogOpen(true)}>
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Invite member
+                                    <Button
+                                        onClick={handleUpdateOrg}
+                                        disabled={isUpdating || orgName === activeOrganization.name}
+                                    >
+                                        {isUpdating ? "Updating..." : "Save changes"}
                                     </Button>
                                 )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {loadingMembers ? (
-                                <p className="text-sm text-muted-foreground">Loading members...</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {members.map((member) => {
-                                        const RoleIcon = roleIcons[member.role as keyof typeof roleIcons] || User;
-                                        const isCurrentUser = member.user.id === session?.user?.id;
-                                        return (
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="members" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle>Team Members</CardTitle>
+                                        <CardDescription>
+                                            Manage who has access to this team
+                                        </CardDescription>
+                                    </div>
+                                    {isAdmin && (
+                                        <Button onClick={() => setIsInviteDialogOpen(true)}>
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Invite member
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingMembers ? (
+                                    <p className="text-sm text-muted-foreground">Loading members...</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {members.map((member) => {
+                                            const RoleIcon = roleIcons[member.role as keyof typeof roleIcons] || User;
+                                            const isCurrentUser = member.user.id === session?.user?.id;
+                                            return (
+                                                <div
+                                                    key={member.id}
+                                                    className="flex items-center justify-between p-4 border rounded-lg"
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                            {member.user.name?.[0]?.toUpperCase() || member.user.email[0].toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium">
+                                                                {member.user.name || member.user.email}
+                                                                {isCurrentUser && (
+                                                                    <span className="ml-2 text-sm text-muted-foreground">(You)</span>
+                                                                )}
+                                                            </p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {member.user.email}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge className={roleColors[member.role as keyof typeof roleColors]}>
+                                                            <RoleIcon className="mr-1 h-3 w-3" />
+                                                            {member.role}
+                                                        </Badge>
+                                                        {isOwner && !isCurrentUser && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleRemoveMember(member.id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="invitations" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Pending Invitations</CardTitle>
+                                <CardDescription>
+                                    Manage pending invitations to this team
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingInvitations ? (
+                                    <p className="text-sm text-muted-foreground">Loading invitations...</p>
+                                ) : invitations.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No pending invitations</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {invitations.map((invitation) => (
                                             <div
-                                                key={member.id}
+                                                key={invitation.id}
                                                 className="flex items-center justify-between p-4 border rounded-lg"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                        {member.user.name?.[0]?.toUpperCase() || member.user.email[0].toUpperCase()}
-                                                    </div>
+                                                    <Mail className="h-5 w-5 text-muted-foreground" />
                                                     <div>
-                                                        <p className="font-medium">
-                                                            {member.user.name || member.user.email}
-                                                            {isCurrentUser && (
-                                                                <span className="ml-2 text-sm text-muted-foreground">(You)</span>
-                                                            )}
-                                                        </p>
+                                                        <p className="font-medium">{invitation.email}</p>
                                                         <p className="text-sm text-muted-foreground">
-                                                            {member.user.email}
+                                                            Invited by {invitation.inviter.name || invitation.inviter.email}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <Badge className={roleColors[member.role as keyof typeof roleColors]}>
-                                                        <RoleIcon className="mr-1 h-3 w-3" />
-                                                        {member.role}
-                                                    </Badge>
-                                                    {isOwner && !isCurrentUser && (
+                                                    <Badge>{invitation.role || "member"}</Badge>
+                                                    {isAdmin && (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleRemoveMember(member.id)}
+                                                            onClick={() => handleCancelInvitation(invitation.id)}
                                                         >
-                                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                                            <X className="h-4 w-4" />
                                                         </Button>
                                                     )}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="invitations" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Pending Invitations</CardTitle>
-                            <CardDescription>
-                                Manage pending invitations to this team
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {loadingInvitations ? (
-                                <p className="text-sm text-muted-foreground">Loading invitations...</p>
-                            ) : invitations.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No pending invitations</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {invitations.map((invitation) => (
-                                        <div
-                                            key={invitation.id}
-                                            className="flex items-center justify-between p-4 border rounded-lg"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <Mail className="h-5 w-5 text-muted-foreground" />
-                                                <div>
-                                                    <p className="font-medium">{invitation.email}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Invited by {invitation.inviter.name || invitation.inviter.email}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Badge>{invitation.role || "member"}</Badge>
-                                                {isAdmin && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleCancelInvitation(invitation.id)}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {!isPersonalOrg && (
-                    <TabsContent value="danger" className="space-y-4">
-                        <Card className="border-red-200">
-                            <CardHeader>
-                                <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                                <CardDescription>
-                                    Irreversible and destructive actions
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-                                    <div>
-                                        <p className="font-medium">Delete this team</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Permanently delete this team and all its data
-                                        </p>
+                                        ))}
                                     </div>
-                                    {isOwner && (
-                                        <Button
-                                            variant="destructive"
-                                            onClick={() => setIsDeleteDialogOpen(true)}
-                                        >
-                                            Delete team
-                                        </Button>
-                                    )}
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
-                )}
-            </Tabs>
 
-            {/* Invite Member Dialog */}
-            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Invite team member</DialogTitle>
-                        <DialogDescription>
-                            Send an invitation to join this team
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="invite-email">Email address</Label>
-                            <Input
-                                id="invite-email"
-                                type="email"
-                                placeholder="colleague@example.com"
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="invite-role">Role</Label>
-                            <Select value={inviteRole} onValueChange={(value: "member" | "admin") => setInviteRole(value)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="member">Member</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {inviteError && (
-                            <p className="text-sm text-red-600">{inviteError}</p>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setIsInviteDialogOpen(false);
-                                setInviteEmail("");
-                                setInviteRole("member");
-                                setInviteError("");
-                            }}
-                            disabled={isInviting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleInviteMember}
-                            disabled={!inviteEmail.trim() || isInviting}
-                        >
-                            {isInviting ? "Sending..." : "Send invitation"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    {!isPersonalOrg && (
+                        <TabsContent value="danger" className="space-y-4">
+                            <Card className="border-red-200">
+                                <CardHeader>
+                                    <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                                    <CardDescription>
+                                        Irreversible and destructive actions
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
+                                        <div>
+                                            <p className="font-medium">Delete this team</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Permanently delete this team and all its data
+                                            </p>
+                                        </div>
+                                        {isOwner && (
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() => setIsDeleteDialogOpen(true)}
+                                            >
+                                                Delete team
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    )}
+                </Tabs>
 
-            {/* Delete Organization Dialog */}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the team
-                            &quot;{activeOrganization.name}&quot; and all its data including links, analytics, and settings.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDeleteOrg}
-                            disabled={isDeleting}
-                            className="bg-red-600 hover:bg-red-700"
-                        >
-                            {isDeleting ? "Deleting..." : "Delete team"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </div>
+                {/* Invite Member Dialog */}
+                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Invite team member</DialogTitle>
+                            <DialogDescription>
+                                Send an invitation to join this team
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="invite-email">Email address</Label>
+                                <Input
+                                    id="invite-email"
+                                    type="email"
+                                    placeholder="colleague@example.com"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="invite-role">Role</Label>
+                                <Select value={inviteRole} onValueChange={(value: "member" | "admin") => setInviteRole(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="member">Member</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {inviteError && (
+                                <p className="text-sm text-red-600">{inviteError}</p>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setIsInviteDialogOpen(false);
+                                    setInviteEmail("");
+                                    setInviteRole("member");
+                                    setInviteError("");
+                                }}
+                                disabled={isInviting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleInviteMember}
+                                disabled={!inviteEmail.trim() || isInviting}
+                            >
+                                {isInviting ? "Sending..." : "Send invitation"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete Organization Dialog */}
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the team
+                                &quot;{activeOrganization.name}&quot; and all its data including links, analytics, and settings.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={handleDeleteOrg}
+                                disabled={isDeleting}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                {isDeleting ? "Deleting..." : "Delete team"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+        </>
     );
 }

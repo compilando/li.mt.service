@@ -37,14 +37,14 @@ export function StatsCards({ totalLinks, totalClicks, activeLinks }: StatsCardsP
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat) => (
                 <Card key={stat.label}>
-                    <CardContent className="p-4">
+                    <CardContent className="p-6">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-md bg-primary/10 p-2">
-                                <stat.icon className="size-4 text-primary" />
+                            <div className="rounded-lg bg-primary/10 p-3">
+                                <stat.icon className="size-5 text-primary" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{stat.value.toLocaleString()}</p>
-                                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                                <p className="text-3xl font-bold tabular-nums tracking-tight">{stat.value.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
                             </div>
                         </div>
                     </CardContent>

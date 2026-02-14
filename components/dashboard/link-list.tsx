@@ -64,9 +64,14 @@ export function LinkList({ links, onUpdate }: LinkListProps) {
 
             {/* Links */}
             {filteredLinks.length > 0 ? (
-                <div className="space-y-2">
-                    {filteredLinks.map((link) => (
-                        <LinkCard key={link.id} link={link} onUpdate={onUpdate} />
+                <div className="border rounded-lg overflow-hidden">
+                    {filteredLinks.map((link, index) => (
+                        <LinkCard
+                            key={link.id}
+                            link={link}
+                            onUpdate={onUpdate}
+                            isLast={index === filteredLinks.length - 1}
+                        />
                     ))}
                 </div>
             ) : links.length > 0 ? (

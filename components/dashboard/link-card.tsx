@@ -50,9 +50,10 @@ interface LinkCardProps {
         organizationId: string;
     };
     onUpdate?: () => void;
+    isLast?: boolean;
 }
 
-export function LinkCard({ link, onUpdate }: LinkCardProps) {
+export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
     const [copied, setCopied] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -91,16 +92,35 @@ export function LinkCard({ link, onUpdate }: LinkCardProps) {
         }
     })();
 
+    const faviconUrl = (() => {
+        try {
+            const url = new URL(link.url);
+            return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`;
+        } catch {
+            return null;
+        }
+    })();
+
     return (
         <div
-            className={`group border rounded-lg p-4 hover:shadow-sm transition-all ${link.archived ? "opacity-60" : ""
-                }`}
+            className={`group p-4 hover:bg-accent/50 transition-all ${link.archived ? "opacity-60" : ""
+                } ${!isLast ? "border-b" : ""}`}
         >
             <div className="flex items-start justify-between gap-4">
                 {/* Left side: Link info */}
                 <div className="flex-1 min-w-0 space-y-1">
                     {/* Title or short URL */}
                     <div className="flex items-center gap-2">
+                        {faviconUrl && (
+                            <img
+                                src={faviconUrl}
+                                alt=""
+                                className="size-4 flex-shrink-0 rounded-sm"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        )}
                         <h3 className="font-medium truncate">
                             {link.title || link.shortCode}
                         </h3>
@@ -157,8 +177,13 @@ export function LinkCard({ link, onUpdate }: LinkCardProps) {
                 {/* Right side: Stats & Actions */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                     {/* Click count */}
-                    <div className="text-center">
-                        <p className="text-lg font-semibold">{link._count.clicks}</p>
+                    <div className="text-center relative">
+                        <div className="flex items-center justify-center gap-1">
+                            <p className="text-lg font-semibold tabular-nums">{link._count.clicks}</p>
+                            {link._count.clicks > 0 && (
+                                <span className="absolute -top-1 -right-1 size-2 bg-green-500 rounded-full animate-pulse" />
+                            )}
+                        </div>
                         <p className="text-xs text-muted-foreground">clicks</p>
                     </div>
 

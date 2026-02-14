@@ -57,7 +57,7 @@ export default function Dashboard({
           setActiveOrganization={setActiveOrganization}
         />
         <main className="min-h-screen w-full p-2 relative pl-0">
-          <div className="shadow-xs p-8 w-full h-full rounded-md bg-[var(--background)]">
+          <div className="shadow-xs w-full h-full rounded-md bg-[var(--background)] flex flex-col overflow-hidden">
             {children}
           </div>
         </main>
