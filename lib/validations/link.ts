@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { normalizeUrl } from "@/lib/url";
 
 export const shortCodeSchema = z
     .string()
@@ -9,8 +10,15 @@ export const shortCodeSchema = z
         "Short code can only contain letters, numbers, hyphens and underscores",
     );
 
+// URL schema with automatic normalization
+export const urlSchema = z
+    .string()
+    .min(1, "URL is required")
+    .transform(normalizeUrl)
+    .pipe(z.url("Please enter a valid URL"));
+
 export const createLinkSchema = z.object({
-    url: z.url("Please enter a valid URL"),
+    url: urlSchema,
     shortCode: shortCodeSchema.optional(),
     title: z.string().max(200).optional(),
     description: z.string().max(500).optional(),
@@ -29,11 +37,13 @@ export const createLinkSchema = z.object({
     // OG
     ogTitle: z.string().max(200).optional(),
     ogDescription: z.string().max(500).optional(),
-    ogImage: z.url().optional(),
-
-    // Mobile
-    iosTarget: z.url().optional(),
-    androidTarget: z.url().optional(),
+    ogImage: z
+        .string()
+        .min(1)
+        .transform(normalizeUrl)
+        .pipe(z.url("Please enter a valid image URL"))
+        .optional()
+        .or(z.literal("")),
 
     // Relations
     domainId: z.string().optional(),

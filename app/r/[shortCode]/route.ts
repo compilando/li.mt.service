@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { trackClick } from "@/lib/actions/analytics";
 import crypto from "crypto";
+import { evaluateRoutingRules, buildRequestContext } from "@/lib/routing-engine";
 
 /**
- * Short link redirector
- * GET /r/:shortCode → redirects to the original URL
+ * Short link redirector with smart routing
+ * GET /r/:shortCode → evaluates routing rules and redirects to the appropriate URL
  */
 export async function GET(
     request: NextRequest,
@@ -26,8 +27,11 @@ export async function GET(
             utmCampaign: true,
             utmTerm: true,
             utmContent: true,
-            iosTarget: true,
-            androidTarget: true,
+            routingRules: {
+                where: { enabled: true },
+                include: { conditions: true },
+                orderBy: { priority: "asc" },
+            },
         },
     });
 
@@ -51,25 +55,41 @@ export async function GET(
         return NextResponse.redirect(new URL(`/r/${shortCode}/verify`, request.url));
     }
 
+    // ─── Smart Routing: Evaluate routing rules ──────────────────────────────
+
+    let finalDestinationUrl = link.url;
+
+    if (link.routingRules.length > 0) {
+        // Build request context for rule evaluation
+        const userAgent = request.headers.get("user-agent") || "";
+        const headers: Record<string, string | undefined> = {};
+        request.headers.forEach((value, key) => {
+            headers[key] = value;
+        });
+
+        const url = new URL(request.url);
+        const query: Record<string, string> = {};
+        url.searchParams.forEach((value, key) => {
+            query[key] = value;
+        });
+
+        const context = buildRequestContext(userAgent, headers, query);
+
+        // Evaluate routing rules
+        const result = evaluateRoutingRules(link.routingRules, context);
+
+        if (result.matched && result.destinationUrl) {
+            finalDestinationUrl = result.destinationUrl;
+        }
+    }
+
     // Build destination URL with UTM params
-    const destinationUrl = new URL(link.url);
+    const destinationUrl = new URL(finalDestinationUrl);
     if (link.utmSource) destinationUrl.searchParams.set("utm_source", link.utmSource);
     if (link.utmMedium) destinationUrl.searchParams.set("utm_medium", link.utmMedium);
     if (link.utmCampaign) destinationUrl.searchParams.set("utm_campaign", link.utmCampaign);
     if (link.utmTerm) destinationUrl.searchParams.set("utm_term", link.utmTerm);
     if (link.utmContent) destinationUrl.searchParams.set("utm_content", link.utmContent);
-
-    // Mobile deep links
-    const userAgent = request.headers.get("user-agent") || "";
-    if (link.iosTarget && /iPhone|iPad|iPod/i.test(userAgent)) {
-        // Track and redirect to iOS target
-        trackClickAsync(request, link.id);
-        return NextResponse.redirect(link.iosTarget);
-    }
-    if (link.androidTarget && /Android/i.test(userAgent)) {
-        trackClickAsync(request, link.id);
-        return NextResponse.redirect(link.androidTarget);
-    }
 
     // Track click (fire and forget)
     trackClickAsync(request, link.id);
@@ -95,7 +115,7 @@ function trackClickAsync(request: NextRequest, linkId: string) {
 
     trackClick({
         linkId,
-        device,
+        device: detectDevice(userAgent),
         browser,
         os,
         referrer,
@@ -120,4 +140,10 @@ function detectOS(ua: string): string {
     if (/Android/i.test(ua)) return "Android";
     if (/iOS|iPhone|iPad/i.test(ua)) return "iOS";
     return "Other";
+}
+
+function detectDevice(ua: string): string {
+    if (/Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return "mobile";
+    if (/Tablet|iPad/i.test(ua)) return "tablet";
+    return "desktop";
 }

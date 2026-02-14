@@ -4,6 +4,7 @@ import { magicLink, organization } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "@/lib/prisma";
 import { createPersonalOrganization } from "@/lib/organization/utils";
+import { sendMagicLinkEmail, sendWelcomeEmail } from "@/lib/mail";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -52,8 +53,8 @@ export const auth = betterAuth({
           }
         }
 
-        // In production, send email here with the verifyUrl
-        // For example: await sendEmail(data.email, verifyUrl);
+        // Send magic link email
+        await sendMagicLinkEmail(data.email, verifyUrl);
       },
       disableSignUp: false,
     }),
@@ -68,6 +69,14 @@ export const auth = betterAuth({
           await createPersonalOrganization({
             userId: user.id,
           });
+
+          // Send welcome email
+          const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/app`;
+          await sendWelcomeEmail(
+            user.email,
+            user.name || "there",
+            dashboardUrl
+          );
         },
       },
     },

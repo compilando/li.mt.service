@@ -67,8 +67,6 @@ describe("createLinkSchema", () => {
             ogTitle: "Custom OG Title",
             ogDescription: "Custom OG Description",
             ogImage: "https://example.com/og.png",
-            iosTarget: "https://apps.apple.com/app/123",
-            androidTarget: "https://play.google.com/store/apps/details?id=com.example",
             domainId: "domain-1",
             tagIds: ["tag-1", "tag-2"],
         };
@@ -87,8 +85,20 @@ describe("createLinkSchema", () => {
     });
 
     it("rejects invalid URLs", () => {
-        expect(() => createLinkSchema.parse({ ...validInput, url: "not-a-url" })).toThrow();
+        // URLs that fail validation even after normalization
+        expect(() => createLinkSchema.parse({ ...validInput, url: "://" })).toThrow();
         expect(() => createLinkSchema.parse({ ...validInput, url: "" })).toThrow();
+        expect(() => createLinkSchema.parse({ ...validInput, url: "   " })).toThrow();
+    });
+
+    it("normalizes URLs without protocol", () => {
+        const result = createLinkSchema.parse({ ...validInput, url: "example.com" });
+        expect(result.url).toBe("https://example.com");
+    });
+
+    it("preserves URLs with different protocols", () => {
+        const result = createLinkSchema.parse({ ...validInput, url: "http://example.com" });
+        expect(result.url).toBe("http://example.com");
     });
 
     it("rejects title longer than 200 chars", () => {
@@ -124,18 +134,20 @@ describe("createLinkSchema", () => {
     });
 
     it("validates OG image must be a valid URL", () => {
+        // Invalid URLs that fail even after normalization
         expect(() =>
-            createLinkSchema.parse({ ...validInput, ogImage: "not-a-url" })
+            createLinkSchema.parse({ ...validInput, ogImage: "://" })
         ).toThrow();
     });
 
-    it("validates mobile targets must be valid URLs", () => {
-        expect(() =>
-            createLinkSchema.parse({ ...validInput, iosTarget: "not-a-url" })
-        ).toThrow();
-        expect(() =>
-            createLinkSchema.parse({ ...validInput, androidTarget: "not-a-url" })
-        ).toThrow();
+    it("normalizes OG image URLs", () => {
+        const result = createLinkSchema.parse({ ...validInput, ogImage: "example.com/image.png" });
+        expect(result.ogImage).toBe("https://example.com/image.png");
+    });
+
+    it("accepts empty string for ogImage", () => {
+        const result = createLinkSchema.parse({ ...validInput, ogImage: "" });
+        expect(result.ogImage).toBe("");
     });
 
     it("accepts empty tagIds array", () => {

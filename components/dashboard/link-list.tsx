@@ -28,8 +28,6 @@ interface LinkListProps {
         ogTitle: string | null;
         ogDescription: string | null;
         ogImage: string | null;
-        iosTarget: string | null;
-        androidTarget: string | null;
         organizationId: string;
     }>;
     onUpdate?: () => void;

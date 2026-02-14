@@ -85,12 +85,13 @@ model Organization {
   plan      String   @default("free")
   createdAt DateTime @default(now())
 
-  members     Member[]
-  invitations Invitation[]
-  links       Link[]
-  domains     Domain[]
-  tags        Tag[]
-  apiKeys     ApiKey[]
+  members          Member[]
+  invitations      Invitation[]
+  links            Link[]
+  domains          Domain[]
+  tags             Tag[]
+  apiKeys          ApiKey[]
+  conditionAliases ConditionAlias[]
 
   @@map("organization")
 }
@@ -155,10 +156,6 @@ model Link {
   ogDescription String?
   ogImage       String?
 
-  // Mobile deep links
-  iosTarget     String?
-  androidTarget String?
-
   // Relationships
   domainId       String?
   domain         Domain?      @relation(fields: [domainId], references: [id], onDelete: SetNull)
@@ -166,6 +163,7 @@ model Link {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   tags           LinkTag[]
   clicks         LinkClick[]
+  routingRules   RoutingRule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -263,4 +261,53 @@ model ApiKey {
   @@index([organizationId])
   @@index([hashedKey])
   @@map("api_key")
+}
+
+// ─── Smart Routing ───────────────────────────────────────────────────────────
+
+model RoutingRule {
+  id             String          @id @default(cuid())
+  linkId         String
+  link           Link            @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  name           String          // "Desktop Users", "Spain Traffic", "A/B Variant A"
+  destinationUrl String          // URL destino si se cumplen las condiciones
+  priority       Int             @default(0) // Orden de evaluación (menor = primero)
+  weight         Int?            // Para A/B testing: peso % (null = no es A/B)
+  enabled        Boolean         @default(true)
+  conditions     RuleCondition[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([linkId, priority])
+  @@map("routing_rule")
+}
+
+model RuleCondition {
+  id       String      @id @default(cuid())
+  ruleId   String
+  rule     RoutingRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  variable String      // "device.os", "device.browser", "geo.country", "time.hour", "http.language", etc.
+  operator String      // "equals", "not_equals", "contains", "in", "gt", "lt", "between"
+  value    String      // "Windows" o "ES" o "14-18" (JSON encoded for complex values)
+
+  @@index([ruleId])
+  @@map("rule_condition")
+}
+
+model ConditionAlias {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String        // "Windows", "Mac", "Linux", "Mobile"
+  category       String        // "os", "device", "browser", "country"
+  variable       String        // "device.os"
+  operator       String        // "equals"
+  value          String        // "Windows"
+  icon           String?       // emoji o icon name
+  isSystem       Boolean       @default(false) // Pre-built aliases
+
+  @@unique([name, isSystem])
+  @@index([organizationId])
+  @@index([isSystem])
+  @@map("condition_alias")
 }

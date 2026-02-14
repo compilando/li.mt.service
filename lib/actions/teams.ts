@@ -35,6 +35,7 @@ import {
 } from "@/lib/errors";
 import { revalidatePath } from "next/cache";
 import { generateId } from "better-auth";
+import { sendInvitationEmail } from "@/lib/mail";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -377,7 +378,20 @@ export async function inviteMember(
             },
         });
 
-        // TODO: Send invitation email
+        // Get organization and inviter info for the email
+        const organization = await prisma.organization.findUnique({
+            where: { id: parsed.organizationId },
+        });
+
+        // Send invitation email
+        const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/app/settings?invitation=${invitation.id}`;
+        await sendInvitationEmail({
+            to: parsed.email,
+            organizationName: organization?.name || "the team",
+            inviterName: session.user.name || session.user.email,
+            role: parsed.role,
+            invitationUrl,
+        });
 
         revalidatePath("/app/settings");
 

@@ -191,7 +191,7 @@ describe("Links Actions", () => {
             mockOrgMembership(true);
 
             const result = await createLink({
-                url: "not-a-url",
+                url: "://invalid",
                 organizationId: "org-1",
             });
 
