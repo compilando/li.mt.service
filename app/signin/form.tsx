@@ -140,18 +140,41 @@ export default function SignInForm() {
                       type="submit"
                       disabled={loading}
                       className="gap-2"
-                      onClick={async () => {
-                        await signIn.magicLink({
-                          email,
-                          fetchOptions: {
-                            onRequest: () => {
-                              setLoading(true);
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (!email) {
+                          alert("Please enter your email");
+                          return;
+                        }
+
+                        setLoading(true);
+
+                        try {
+                          await signIn.magicLink(
+                            {
+                              email,
+                              callbackURL: "/app",
                             },
-                            onResponse: () => {
-                              setLoading(false);
-                            },
-                          },
-                        });
+                            {
+                              onSuccess: () => {
+                                setLoading(false);
+                                // Redirect to dev magic links page
+                                if (typeof window !== "undefined") {
+                                  window.location.href = "/dev-magic-link";
+                                }
+                              },
+                              onError: (ctx) => {
+                                setLoading(false);
+                                console.error("Magic link error:", ctx.error);
+                                alert(`Error: ${ctx.error.message}`);
+                              },
+                            }
+                          );
+                        } catch (error) {
+                          setLoading(false);
+                          console.error("Error:", error);
+                          alert("An error occurred. Please try again.");
+                        }
                       }}
                     >
                       Sign-in with Magic Link

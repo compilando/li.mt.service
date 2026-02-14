@@ -17,11 +17,13 @@
 | ----------- | ---------------------------------------- |
 | Framework   | Next.js 16 (App Router)                  |
 | Language    | TypeScript (strict)                      |
-| Database    | PostgreSQL via Prisma 7 (PrismaPg)       |
+| Database    | PostgreSQL (Docker Compose) + Prisma 7   |
 | Auth        | Better Auth (Google, GitHub, Magic Link) |
 | UI          | Shadcn/ui + Radix UI + Tailwind CSS v4   |
 | Validation  | Zod v4                                   |
+| Testing     | Vitest + Testing Library                 |
 | Package Mgr | pnpm                                     |
+| Dev Tools   | Make, Docker Compose                     |
 | Fonts       | Inter (sans), Geist (mono)               |
 
 ## Architecture
@@ -143,27 +145,173 @@ generated/                      → Prisma generated client (DO NOT edit)
 - Import from `node_modules` directly for UI (use Shadcn wrappers)
 - Store secrets in code (use environment variables)
 
-## Commands
+## Testing
+
+### Philosophy
+**TESTING IS MANDATORY.** All new features, utilities, validations, and server actions MUST include comprehensive unit tests before being considered complete.
+
+### Test Framework
+- **Vitest** — Fast, modern test runner with great DX
+- **Testing Library** — React component testing
+- **Coverage thresholds:** 80% statements, 75% branches, 80% functions, 80% lines
+
+### Test Structure
+```
+__tests__/
+├── setup.ts                    # Global mocks & test configuration
+├── helpers.ts                  # Reusable test utilities & factories
+└── lib/
+    ├── short-code.test.ts      # Unit tests for utilities
+    ├── errors.test.ts
+    ├── utils.test.ts
+    ├── constants.test.ts
+    ├── validations/            # Zod schema tests
+    │   ├── link.test.ts
+    │   ├── tag.test.ts
+    │   └── domain.test.ts
+    └── actions/                # Server action tests (with mocks)
+        ├── links.test.ts
+        └── tags.test.ts
+```
+
+### Running Tests
+```bash
+pnpm test              # Run all tests (watch mode)
+pnpm test --run        # Run once (CI mode)
+pnpm test:ui           # Open Vitest UI
+pnpm test:coverage     # Generate coverage report
+```
+
+### What to Test
+1. **Utilities & helpers** — Pure functions, edge cases, error handling
+2. **Validation schemas** — Valid inputs, invalid inputs, edge cases, length limits
+3. **Server actions** — Auth requirements, permissions, success/failure cases, data validation
+4. **Error classes** — Correct status codes, messages, inheritance
+5. **Constants** — Values are within expected ranges
+
+### Test Patterns
+```typescript
+// Use factory functions from helpers.ts
+import { mockAuthenticated, createMockLink } from "@/__tests__/helpers";
+
+// Test server actions
+describe("createLink", () => {
+    it("requires authentication", async () => {
+        mockUnauthenticated();
+        const result = await createLink({ url: "...", organizationId: "..." });
+        expect(result.success).toBe(false);
+    });
+});
+
+// Test validations
+describe("createLinkSchema", () => {
+    it("accepts valid input", () => {
+        expect(() => createLinkSchema.parse({ url: "...", organizationId: "..." })).not.toThrow();
+    });
+});
+```
+
+### Before Committing
+1. ✅ Run `pnpm test --run` — All tests must pass
+2. ✅ Ensure coverage thresholds are met
+3. ✅ Add tests for any new code
+4. ✅ Update existing tests if behavior changes
+
+## Development Setup
+
+### Quick Start with Make (Recommended)
 
 ```bash
-pnpm dev            # Start dev server
-pnpm build          # Production build
-pnpm lint           # ESLint
-pnpm format         # Prettier
-npx prisma generate # Regenerate Prisma client after schema changes
-npx prisma db push  # Push schema to database (dev)
-npx prisma migrate  # Create migration (production)
+make setup             # Complete setup: install deps + start DB + migrate
+make dev               # Start development server
+make test              # Run all tests
+make db-studio         # Open Prisma Studio
+make help              # See all available commands
+```
+
+### Manual Setup
+
+```bash
+pnpm install           # Install dependencies
+docker compose up -d   # Start PostgreSQL
+npx prisma db push     # Apply schema to database
+pnpm dev               # Start dev server
+```
+
+### Database (Docker Compose)
+
+PostgreSQL runs in Docker with these credentials:
+- **Host:** localhost:5432
+- **Database:** limt
+- **User:** limt
+- **Password:** limt_dev_password
+- **Connection String:** `postgresql://limt:limt_dev_password@localhost:5432/limt`
+
+```bash
+make db-up             # Start PostgreSQL
+make db-down           # Stop PostgreSQL
+make db-shell          # Open PostgreSQL CLI
+make db-logs           # View database logs
+make db-studio         # Open Prisma Studio (GUI)
+```
+
+### Common Make Commands
+
+**Development:**
+- `make dev` — Start dev server (with Prisma generate)
+- `make build` — Production build
+- `make start` — Start production server
+
+**Testing:**
+- `make test` — Run tests once (CI mode)
+- `make test-watch` — Run tests in watch mode
+- `make test-ui` — Open Vitest UI
+- `make test-coverage` — Generate coverage report
+
+**Database:**
+- `make db-push` — Push schema changes (dev)
+- `make db-migrate` — Create migration (prod)
+- `make db-reset` — Reset database (⚠️ deletes all data)
+
+**Code Quality:**
+- `make lint` — Run ESLint
+- `make format` — Format with Prettier
+
+**Utilities:**
+- `make clean` — Clean build artifacts
+- `make help` — See all commands
+
+### Manual Commands (without Make)
+
+```bash
+pnpm dev               # Start dev server
+pnpm build             # Production build
+pnpm test              # Run tests (watch mode)
+pnpm test --run        # Run tests once (CI)
+pnpm test:coverage     # Generate coverage report
+pnpm lint              # ESLint
+pnpm format            # Prettier
+npx prisma generate    # Regenerate Prisma client
+npx prisma db push     # Push schema to database (dev)
+npx prisma migrate     # Create migration (production)
+npx prisma studio      # Open Prisma Studio
 ```
 
 ## Environment Variables
 
-See `.example.env` for required variables:
-- `DATABASE_URL` — PostgreSQL connection string
-- `BETTER_AUTH_SECRET` — Auth secret key
-- `BETTER_AUTH_URL` — App base URL
-- `NEXT_PUBLIC_APP_URL` — Public app URL
-- `GOOGLE_CLIENT_ID/SECRET` — Google OAuth
-- `GITHUB_CLIENT_ID/SECRET` — GitHub OAuth
+Copy `.example.env` to `.env` and configure:
+
+**Required:**
+- `DATABASE_URL` — PostgreSQL connection string (default: `postgresql://limt:limt_dev_password@localhost:5432/limt`)
+- `BETTER_AUTH_SECRET` — Auth secret key (generate with: `openssl rand -base64 32`)
+- `BETTER_AUTH_URL` — App base URL (default: `http://localhost:3000`)
+- `NEXT_PUBLIC_APP_URL` — Public app URL (default: `http://localhost:3000`)
+
+**Optional (for OAuth):**
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — GitHub OAuth
+
+**Note:** Without OAuth configured, only Magic Link authentication will work.
 
 ## Current Status & Roadmap
 

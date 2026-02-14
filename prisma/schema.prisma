@@ -135,6 +135,9 @@ model Link {
   title     String?
   description String?
 
+  // Internal notes
+  comments  String?
+
   // Protection
   password  String?
   expiresAt DateTime?

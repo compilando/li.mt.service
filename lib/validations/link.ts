@@ -14,6 +14,7 @@ export const createLinkSchema = z.object({
     shortCode: shortCodeSchema.optional(),
     title: z.string().max(200).optional(),
     description: z.string().max(500).optional(),
+    comments: z.string().max(1000).optional(),
     password: z.string().min(1).max(100).optional(),
     expiresAt: z.iso.datetime().optional(),
     archived: z.boolean().optional(),

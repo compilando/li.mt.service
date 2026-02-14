@@ -8,11 +8,13 @@
 ## Code Rules
 
 ### Must Do
+- **Write tests for all new code** — No feature is complete without tests
 - Use `"use server"` directive for all server actions in `lib/actions/`
 - Return `ActionResult<T>` from all server actions (never throw errors to client)
 - Use Zod v4 validation schemas from `lib/validations/` for all user inputs
 - Import Zod from `"zod/v4"` (not `"zod"`)
 - Run `npx prisma generate` after any schema.prisma changes
+- Run `pnpm test --run` before committing to ensure all tests pass
 - Use `@/` import alias for all project imports
 - All data operations must be scoped to an organization
 - Check organization membership before any data access
@@ -39,11 +41,17 @@
 - Actions: kebab-case (e.g., `links.ts`)
 - Validations: kebab-case (e.g., `link.ts`)
 
-### Testing Checklist
-- Verify auth guard works (unauthenticated users redirect to /signin)
+### Testing Checklist (MANDATORY)
+- **Write unit tests** for all new utilities, validations, and actions
+- Use test helpers from `__tests__/helpers.ts` (mockAuthenticated, createMockLink, etc.)
+- Test both success and failure cases
+- Test edge cases (empty strings, max lengths, invalid input)
+- Verify auth requirements (unauthenticated users get UNAUTHORIZED)
 - Verify organization scoping (users only see their org's data)
 - Verify short codes are unique and not reserved
 - Verify link redirector handles edge cases (expired, archived, password-protected)
+- Run `pnpm test --run` to confirm all tests pass before committing
+- Maintain 80%+ code coverage (run `pnpm test:coverage` to check)
 
 ## Quick Reference
 
@@ -63,5 +71,14 @@
 1. Add model to `prisma/schema.prisma`
 2. Run `npx prisma generate`
 3. Run `npx prisma db push` (dev) or `npx prisma migrate dev` (production)
-4. Create Zod validation schema
-5. Create server actions
+4. Create Zod validation schema in `lib/validations/`
+5. **Write tests** for validation schema in `__tests__/lib/validations/`
+6. Create server actions in `lib/actions/`
+7. **Write tests** for server actions in `__tests__/lib/actions/`
+8. Run `pnpm test --run` to verify all tests pass
+
+### Add a new utility function
+1. Create function in `lib/` directory
+2. **Write comprehensive unit tests** in `__tests__/lib/`
+3. Test edge cases, error handling, and all code paths
+4. Run `pnpm test --run` to verify

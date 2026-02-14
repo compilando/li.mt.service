@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+package-lock.json
+
+# Next.js
+.next/
+out/
+dist/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Generated files
+generated/
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Config files (keep only necessary ones)
+.prettierrc
+.eslintrc
+.editorconfig
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db

@@ -18,6 +18,7 @@ import {
     type ActionResult,
 } from "@/lib/errors";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,19 @@ async function requireLinkOwnership(linkId: string, userId: string) {
 export async function createLink(input: CreateLinkInput): Promise<ActionResult<{ id: string; shortCode: string }>> {
     try {
         const session = await requireAuth();
-        const parsed = createLinkSchema.parse(input);
+
+        // Parse and validate input with detailed error messages
+        const validationResult = createLinkSchema.safeParse(input);
+        if (!validationResult.success) {
+            const firstError = validationResult.error.issues[0];
+            return {
+                success: false,
+                error: firstError.message,
+                code: "VALIDATION_ERROR"
+            };
+        }
+
+        const parsed = validationResult.data;
         await requireOrgMembership(parsed.organizationId, session.user.id);
 
         // Generate or validate short code
@@ -84,12 +97,16 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<{
             }
         }
 
-        const { tagIds, ...linkData } = parsed;
+        const { tagIds, password, ...linkData } = parsed;
+
+        // Hash password if provided
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
 
         const link = await prisma.link.create({
             data: {
                 ...linkData,
                 shortCode,
+                password: hashedPassword,
                 expiresAt: linkData.expiresAt ? new Date(linkData.expiresAt) : null,
                 tags: tagIds?.length
                     ? {
@@ -271,4 +288,61 @@ export async function getLinkById(id: string) {
 
     await requireOrgMembership(link.organizationId, session.user.id);
     return link;
+}
+
+export async function verifyLinkPassword(
+    shortCode: string,
+    password: string
+): Promise<ActionResult<{ url: string }>> {
+    try {
+        const link = await prisma.link.findUnique({
+            where: { shortCode },
+            select: {
+                id: true,
+                url: true,
+                password: true,
+                archived: true,
+                expiresAt: true,
+                utmSource: true,
+                utmMedium: true,
+                utmCampaign: true,
+                utmTerm: true,
+                utmContent: true,
+            },
+        });
+
+        if (!link) {
+            return { success: false, error: "Link not found" };
+        }
+
+        if (link.archived) {
+            return { success: false, error: "This link has been archived" };
+        }
+
+        if (link.expiresAt && new Date() > link.expiresAt) {
+            return { success: false, error: "This link has expired" };
+        }
+
+        if (!link.password) {
+            return { success: false, error: "This link is not password protected" };
+        }
+
+        const isValid = await bcrypt.compare(password, link.password);
+        if (!isValid) {
+            return { success: false, error: "Incorrect password" };
+        }
+
+        // Build destination URL with UTM params
+        const destinationUrl = new URL(link.url);
+        if (link.utmSource) destinationUrl.searchParams.set("utm_source", link.utmSource);
+        if (link.utmMedium) destinationUrl.searchParams.set("utm_medium", link.utmMedium);
+        if (link.utmCampaign) destinationUrl.searchParams.set("utm_campaign", link.utmCampaign);
+        if (link.utmTerm) destinationUrl.searchParams.set("utm_term", link.utmTerm);
+        if (link.utmContent) destinationUrl.searchParams.set("utm_content", link.utmContent);
+
+        return { success: true, data: { url: destinationUrl.toString() } };
+    } catch (error: any) {
+        console.error("Error verifying password:", error);
+        return { success: false, error: "Failed to verify password" };
+    }
 }
