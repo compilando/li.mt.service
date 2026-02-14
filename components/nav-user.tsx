@@ -8,6 +8,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
@@ -23,12 +28,17 @@ import {
   CreditCardIcon,
   BellIcon,
   LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SunIcon,
 } from "lucide-react";
 import Avatar from "boring-avatars";
 import { signOut } from "@/lib/auth-client";
+import { useTheme } from "next-themes";
 
 export function NavUser({ user }: { user: User }) {
   const { isMobile } = useSidebar();
+  const { theme, setTheme } = useTheme();
 
   return (
     <SidebarMenu>
@@ -89,6 +99,34 @@ export function NavUser({ user }: { user: User }) {
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  {theme === "light" ? (
+                    <SunIcon />
+                  ) : theme === "dark" ? (
+                    <MoonIcon />
+                  ) : (
+                    <MonitorIcon />
+                  )}
+                  Theme
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                    <DropdownMenuRadioItem value="light">
+                      <SunIcon />
+                      Light
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="dark">
+                      <MoonIcon />
+                      Dark
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="system">
+                      <MonitorIcon />
+                      System
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem

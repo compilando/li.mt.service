@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
+import { ruleConditionSchema } from "./routing";
 
 export const shortCodeSchema = z
     .string()
@@ -51,6 +52,20 @@ export const createLinkSchema = z.object({
 
     // Organization context
     organizationId: z.string(),
+
+    // Routing rules (optional, created alongside the link)
+    routingRules: z.array(z.object({
+        name: z.string().min(1).max(200),
+        destinationUrl: z
+            .string()
+            .min(1, "Destination URL is required")
+            .transform(normalizeUrl)
+            .pipe(z.url("Please enter a valid destination URL")),
+        priority: z.number().int().min(0).default(0),
+        weight: z.number().int().min(1).max(100).optional(),
+        enabled: z.boolean().default(true),
+        conditions: z.array(ruleConditionSchema).min(1, "At least one condition is required"),
+    })).optional(),
 });
 
 export const updateLinkSchema = createLinkSchema

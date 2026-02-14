@@ -250,9 +250,9 @@ export function LinkForm({
     return (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row max-h-[calc(90vh-130px)]">
             {/* ─── Left Panel: Main Form ──────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {/* Destination URL */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <Label htmlFor="url" className="flex items-center gap-1.5 text-sm font-medium">
                         Destination URL
                     </Label>
@@ -264,13 +264,10 @@ export function LinkForm({
                         required
                         autoFocus
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Select the protocol and enter your destination URL
-                    </p>
                 </div>
 
                 {/* Short Link */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="shortCode" className="flex items-center gap-1.5 text-sm font-medium">
                             Short Link
@@ -287,7 +284,7 @@ export function LinkForm({
                         </Button>
                     </div>
                     <div className="flex items-center gap-0">
-                        <div className="flex items-center h-10 px-3 rounded-l-md border border-r-0 bg-muted text-sm text-muted-foreground whitespace-nowrap">
+                        <div className="flex items-center h-9 px-3 rounded-l-md border border-r-0 bg-muted text-sm text-muted-foreground whitespace-nowrap">
                             <Link2 className="size-3.5 mr-1.5" />
                             {APP_URL.replace(/^https?:\/\//, "")}/r/
                         </div>
@@ -297,13 +294,41 @@ export function LinkForm({
                             value={shortCode}
                             onChange={(e) => setShortCode(e.target.value)}
                             pattern="^[a-zA-Z0-9_-]+$"
-                            className="h-10 rounded-l-none"
+                            className="h-9 rounded-l-none"
+                        />
+                    </div>
+                </div>
+
+                {/* Title & Description in 2 columns */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="title" className="text-sm font-medium">
+                            Title
+                        </Label>
+                        <Input
+                            id="title"
+                            placeholder="Link title (optional)"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="h-9"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="description" className="text-sm font-medium">
+                            Description
+                        </Label>
+                        <Input
+                            id="description"
+                            placeholder="Brief description (optional)"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="h-9"
                         />
                     </div>
                 </div>
 
                 {/* Tags */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <Label className="flex items-center gap-1.5 text-sm font-medium">
                             <Tag className="size-3.5" />
@@ -411,26 +436,25 @@ export function LinkForm({
                     </div>
                 </div>
 
-                {/* Comments */}
-                <div className="space-y-2">
+
+                {/* Comments - Single line for compactness */}
+                <div className="space-y-1.5">
                     <Label htmlFor="comments" className="flex items-center gap-1.5 text-sm font-medium">
                         <MessageSquare className="size-3.5" />
-                        Comments
+                        Internal Notes
                     </Label>
-                    <Textarea
+                    <Input
                         id="comments"
-                        placeholder="Add internal notes about this link..."
+                        placeholder="Add internal notes..."
                         value={comments}
                         onChange={(e) => setComments(e.target.value)}
-                        rows={2}
-                        className="resize-none"
+                        className="h-9"
                     />
                 </div>
 
-                <Separator />
 
                 {/* ─── Feature Tabs ─────────────────────────────────────────── */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                         <Button
                             type="button"
@@ -475,9 +499,9 @@ export function LinkForm({
 
                     {/* UTM Panel */}
                     {activeTab === "utm" && (
-                        <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
+                        <div className="space-y-2.5 rounded-lg border p-3 bg-muted/30">
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <div className="space-y-1">
                                     <Label htmlFor="utmSource" className="text-xs">
                                         Source
                                     </Label>
@@ -486,10 +510,10 @@ export function LinkForm({
                                         placeholder="google"
                                         value={utmSource}
                                         onChange={(e) => setUtmSource(e.target.value)}
-                                        className="h-9"
+                                        className="h-8"
                                     />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div className="space-y-1">
                                     <Label htmlFor="utmMedium" className="text-xs">
                                         Medium
                                     </Label>
@@ -498,11 +522,11 @@ export function LinkForm({
                                         placeholder="cpc"
                                         value={utmMedium}
                                         onChange={(e) => setUtmMedium(e.target.value)}
-                                        className="h-9"
+                                        className="h-8"
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                                 <Label htmlFor="utmCampaign" className="text-xs">
                                     Campaign
                                 </Label>
@@ -511,11 +535,11 @@ export function LinkForm({
                                     placeholder="spring_sale"
                                     value={utmCampaign}
                                     onChange={(e) => setUtmCampaign(e.target.value)}
-                                    className="h-9"
+                                    className="h-8"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <div className="space-y-1">
                                     <Label htmlFor="utmTerm" className="text-xs">
                                         Term
                                     </Label>
@@ -524,10 +548,10 @@ export function LinkForm({
                                         placeholder="running+shoes"
                                         value={utmTerm}
                                         onChange={(e) => setUtmTerm(e.target.value)}
-                                        className="h-9"
+                                        className="h-8"
                                     />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div className="space-y-1">
                                     <Label htmlFor="utmContent" className="text-xs">
                                         Content
                                     </Label>
@@ -536,7 +560,7 @@ export function LinkForm({
                                         placeholder="logolink"
                                         value={utmContent}
                                         onChange={(e) => setUtmContent(e.target.value)}
-                                        className="h-9"
+                                        className="h-8"
                                     />
                                 </div>
                             </div>
@@ -545,8 +569,8 @@ export function LinkForm({
 
                     {/* Password Panel */}
                     {activeTab === "password" && (
-                        <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-                            <div className="space-y-1.5">
+                        <div className="space-y-2.5 rounded-lg border p-3 bg-muted/30">
+                            <div className="space-y-1">
                                 <Label htmlFor="password" className="text-xs">
                                     Password protection
                                 </Label>
@@ -556,19 +580,16 @@ export function LinkForm({
                                     placeholder="Enter a password to protect this link"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="h-9"
+                                    className="h-8"
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    Users will need to enter this password to access the destination URL.
-                                </p>
                             </div>
                         </div>
                     )}
 
                     {/* Expiration Panel */}
                     {activeTab === "expiration" && (
-                        <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
-                            <div className="space-y-1.5">
+                        <div className="space-y-2.5 rounded-lg border p-3 bg-muted/30">
+                            <div className="space-y-1">
                                 <Label htmlFor="expiresAt" className="text-xs">
                                     Expiration date
                                 </Label>
@@ -578,11 +599,8 @@ export function LinkForm({
                                     value={expiresAt}
                                     onChange={(e) => setExpiresAt(e.target.value)}
                                     min={new Date().toISOString().slice(0, 16)}
-                                    className="h-9"
+                                    className="h-8"
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                    The link will stop redirecting after this date.
-                                </p>
                             </div>
                         </div>
                     )}
@@ -590,8 +608,8 @@ export function LinkForm({
             </div>
 
             {/* ─── Right Panel: Sidebar ──────────────────────────────────── */}
-            <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l overflow-y-auto bg-muted/20 p-5 space-y-5">
-                {/* QR Code */}
+            <div className="w-full sm:w-80 border-t sm:border-t-0 sm:border-l overflow-y-auto bg-muted/20 p-4 space-y-4">
+                {/* QR Code - More compact */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <Label className="flex items-center gap-1.5 text-sm font-medium">
@@ -611,20 +629,20 @@ export function LinkForm({
                             </Button>
                         )}
                     </div>
-                    <div className="flex items-center justify-center rounded-lg border bg-white p-4">
+                    <div className="flex items-center justify-center rounded-lg border bg-white p-3">
                         {url ? (
                             <QRCodeSVG
                                 id="qr-code-svg"
                                 value={previewUrl}
-                                size={160}
+                                size={120}
                                 level="M"
                                 includeMargin={false}
                             />
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                                <QrCode className="size-10 mb-2 opacity-30" />
+                            <div className="flex flex-col items-center justify-center h-[120px] text-muted-foreground">
+                                <QrCode className="size-8 mb-1.5 opacity-30" />
                                 <p className="text-xs text-center">
-                                    Enter a URL to<br />generate a QR code
+                                    Enter a URL to<br />generate QR
                                 </p>
                             </div>
                         )}
@@ -634,19 +652,16 @@ export function LinkForm({
                 <Separator />
 
                 {/* Custom Link Preview (OG) */}
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                     <Label className="flex items-center gap-1.5 text-sm font-medium">
                         <ImageIcon className="size-3.5" />
-                        Custom Link Preview
+                        Social Preview
                     </Label>
-                    <p className="text-xs text-muted-foreground">
-                        Customize how this link appears when shared on social media.
-                    </p>
 
-                    {/* OG Preview Card */}
+                    {/* OG Preview Card - Smaller */}
                     <div className="rounded-lg border bg-white overflow-hidden">
                         {ogImage ? (
-                            <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                            <div className="aspect-[2/1] bg-muted flex items-center justify-center overflow-hidden">
                                 <img
                                     src={ogImage}
                                     alt="OG preview"
@@ -657,24 +672,23 @@ export function LinkForm({
                                 />
                             </div>
                         ) : (
-                            <div className="aspect-video bg-muted/50 flex flex-col items-center justify-center text-muted-foreground">
-                                <ImageIcon className="size-8 mb-1.5 opacity-30" />
-                                <p className="text-xs">Add an image URL below</p>
+                            <div className="aspect-[2/1] bg-muted/50 flex flex-col items-center justify-center text-muted-foreground">
+                                <ImageIcon className="size-6 opacity-30" />
                             </div>
                         )}
-                        <div className="p-3 space-y-0.5">
-                            <p className="text-sm font-medium truncate">
+                        <div className="p-2.5 space-y-0.5">
+                            <p className="text-xs font-medium truncate">
                                 {ogTitle || title || "Add a title..."}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-[11px] text-muted-foreground truncate">
                                 {ogDescription || description || "Add a description..."}
                             </p>
                         </div>
                     </div>
 
                     {/* OG Fields */}
-                    <div className="space-y-2.5">
-                        <div className="space-y-1.5">
+                    <div className="space-y-2">
+                        <div className="space-y-1">
                             <Label htmlFor="ogTitle" className="text-xs">
                                 OG Title
                             </Label>
@@ -683,10 +697,10 @@ export function LinkForm({
                                 placeholder={title || "Custom title for social media"}
                                 value={ogTitle}
                                 onChange={(e) => setOgTitle(e.target.value)}
-                                className="h-9"
+                                className="h-8"
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                             <Label htmlFor="ogDescription" className="text-xs">
                                 OG Description
                             </Label>
@@ -696,19 +710,19 @@ export function LinkForm({
                                 value={ogDescription}
                                 onChange={(e) => setOgDescription(e.target.value)}
                                 rows={2}
-                                className="resize-none text-sm"
+                                className="resize-none text-xs"
                             />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                             <Label htmlFor="ogImage" className="text-xs">
-                                OG Image URL
+                                Image URL
                             </Label>
                             <UrlInput
                                 id="ogImage"
                                 value={ogImage}
                                 onChange={setOgImage}
-                                placeholder="example.com/og-image.png"
-                                className="h-9"
+                                placeholder="example.com/image.png"
+                                className="h-8"
                             />
                         </div>
                     </div>

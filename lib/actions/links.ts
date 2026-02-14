@@ -61,7 +61,7 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<{
             }
         }
 
-        const { tagIds, password, ...linkData } = parsed;
+        const { tagIds, password, routingRules, ...linkData } = parsed;
 
         // Hash password if provided
         const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
@@ -76,6 +76,24 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<{
                     ? {
                         create: tagIds.map((tagId) => ({
                             tagId,
+                        })),
+                    }
+                    : undefined,
+                routingRules: routingRules?.length
+                    ? {
+                        create: routingRules.map((rule, index) => ({
+                            name: rule.name,
+                            destinationUrl: rule.destinationUrl,
+                            priority: rule.priority ?? index,
+                            weight: rule.weight,
+                            enabled: rule.enabled ?? true,
+                            conditions: {
+                                create: rule.conditions.map((cond) => ({
+                                    variable: cond.variable,
+                                    operator: cond.operator,
+                                    value: cond.value,
+                                })),
+                            },
                         })),
                     }
                     : undefined,
@@ -111,20 +129,50 @@ export async function updateLink(input: UpdateLinkInput): Promise<ActionResult<{
             }
         }
 
-        const { id, tagIds, ...data } = parsed;
+        const { id, tagIds, routingRules, password, ...data } = parsed;
+
+        // Hash password if provided
+        const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
+
+        // Build update data object
+        const updateData: any = {
+            ...data,
+            password: hashedPassword,
+            expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+        };
+
+        // Handle tags update
+        if (tagIds) {
+            updateData.tags = {
+                deleteMany: {},
+                create: tagIds.map((tagId) => ({ tagId })),
+            };
+        }
+
+        // Handle routing rules update
+        if (routingRules) {
+            updateData.routingRules = {
+                deleteMany: {},
+                create: routingRules.map((rule, index) => ({
+                    name: rule.name,
+                    destinationUrl: rule.destinationUrl,
+                    priority: rule.priority ?? index,
+                    weight: rule.weight,
+                    enabled: rule.enabled ?? true,
+                    conditions: {
+                        create: rule.conditions.map((cond) => ({
+                            variable: cond.variable,
+                            operator: cond.operator,
+                            value: cond.value,
+                        })),
+                    },
+                })),
+            };
+        }
 
         await prisma.link.update({
             where: { id },
-            data: {
-                ...data,
-                expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-                tags: tagIds
-                    ? {
-                        deleteMany: {},
-                        create: tagIds.map((tagId) => ({ tagId })),
-                    }
-                    : undefined,
-            },
+            data: updateData,
         });
 
         revalidatePath("/app/links");
@@ -247,6 +295,12 @@ export async function getLinkById(id: string) {
                 _count: { select: { clicks: true } },
                 domain: true,
                 organization: true,
+                routingRules: {
+                    include: {
+                        conditions: true,
+                    },
+                    orderBy: { priority: 'asc' },
+                },
             },
         });
 

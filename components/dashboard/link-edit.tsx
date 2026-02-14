@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe, Zap } from "lucide-react";
 import { updateLink } from "@/lib/actions/links";
 import { LinkForm } from "./link-form";
-import { RoutingFlowBuilder } from "./routing-flow-builder";
+import { RoutingBuilderMemory, type MemoryRoutingRule } from "./routing-builder-memory";
 import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -35,6 +36,20 @@ interface LinkEditProps {
         ogImage: string | null;
         tags: Array<{ tag: { id: string; name: string; color: string } }>;
         domain: { name: string } | null;
+        routingRules?: Array<{
+            id: string;
+            name: string;
+            destinationUrl: string;
+            priority: number;
+            weight: number | null;
+            enabled: boolean;
+            conditions: Array<{
+                id: string;
+                variable: string;
+                operator: string;
+                value: string;
+            }>;
+        }>;
     };
     organizationId: string;
     open: boolean;
@@ -48,6 +63,26 @@ export function LinkEdit({ link, organizationId, open, onOpenChange, onSuccess }
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [routingDialogOpen, setRoutingDialogOpen] = useState(false);
+    const [routingRules, setRoutingRules] = useState<MemoryRoutingRule[]>([]);
+
+    // Load existing routing rules when dialog opens
+    useEffect(() => {
+        if (open && link.routingRules) {
+            const memoryRules: MemoryRoutingRule[] = link.routingRules.map((rule) => ({
+                name: rule.name,
+                destinationUrl: rule.destinationUrl,
+                priority: rule.priority,
+                weight: rule.weight ?? undefined,
+                enabled: rule.enabled,
+                conditions: rule.conditions.map((cond) => ({
+                    variable: cond.variable,
+                    operator: cond.operator as any,
+                    value: cond.value,
+                })),
+            }));
+            setRoutingRules(memoryRules);
+        }
+    }, [open, link.routingRules]);
 
     const handleSubmit = async (data: Omit<Parameters<typeof updateLink>[0], 'id'>) => {
         setLoading(true);
@@ -58,6 +93,8 @@ export function LinkEdit({ link, organizationId, open, onOpenChange, onSuccess }
             ...data,
             // Only update shortCode if it changed
             shortCode: data.shortCode !== link.shortCode ? data.shortCode : undefined,
+            // Include routing rules
+            routingRules: routingRules.length > 0 ? routingRules : undefined,
         });
 
         setLoading(false);
@@ -75,6 +112,11 @@ export function LinkEdit({ link, organizationId, open, onOpenChange, onSuccess }
     const handleCancel = () => {
         onOpenChange(false);
         setError(null);
+    };
+
+    const handleSaveRoutingRules = (rules: MemoryRoutingRule[]) => {
+        setRoutingRules(rules);
+        setRoutingDialogOpen(false);
     };
 
     // Prepare initial data for the form
@@ -121,21 +163,55 @@ export function LinkEdit({ link, organizationId, open, onOpenChange, onSuccess }
                     />
 
                     {/* Error & Actions Footer */}
-                    <div className="border-t px-6 py-4 flex items-center justify-end gap-2 bg-background">
-                        {error && (
-                            <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-1.5 mr-auto">
-                                {error}
-                            </p>
-                        )}
+                    <div className="border-t px-6 py-4 flex items-center justify-between gap-2 bg-background">
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setRoutingDialogOpen(true)}
+                                className="gap-1.5"
+                            >
+                                <Zap className="size-4" />
+                                Smart Routing
+                                {routingRules.length > 0 && (
+                                    <span className="ml-1 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-xs">
+                                        {routingRules.length}
+                                    </span>
+                                )}
+                            </Button>
+                            {error && (
+                                <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-1.5">
+                                    {error}
+                                </p>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" variant="outline" onClick={handleCancel}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={loading} onClick={(e) => {
+                                e.preventDefault();
+                                const form = e.currentTarget.closest('form');
+                                if (form) {
+                                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                    form.dispatchEvent(submitEvent);
+                                }
+                            }}>
+                                {loading && <span className="mr-2">⏳</span>}
+                                Update link
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            <RoutingFlowBuilder
-                linkId={link.id}
+            {/* Routing Builder */}
+            <RoutingBuilderMemory
                 open={routingDialogOpen}
                 onOpenChange={setRoutingDialogOpen}
                 defaultUrl={link.url}
+                initialRules={routingRules}
+                onSave={handleSaveRoutingRules}
             />
         </>
     );

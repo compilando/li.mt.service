@@ -96,7 +96,7 @@ export function LinksPageContent() {
                             </TooltipTrigger>
                         </LinkCreate>
                         <TooltipContent>
-                            <p className="text-xs">Create new link <kbd className="ml-1 px-1 bg-muted rounded text-[10px]">⌘N</kbd></p>
+                            <p className="text-xs">Create new link <kbd className="ml-1 px-1 bg-foreground text-background border rounded text-[10px] font-mono">⌘N</kbd></p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

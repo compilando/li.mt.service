@@ -8,10 +8,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe, Zap } from "lucide-react";
 import { createLink } from "@/lib/actions/links";
 import { LinkForm } from "./link-form";
-import { RoutingFlowBuilder } from "./routing-flow-builder";
+import { RoutingBuilderMemory, type MemoryRoutingRule } from "./routing-builder-memory";
 import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,8 +32,8 @@ export default function LinkCreate({ organizationId, children, onSuccess }: Link
 
   // Smart Routing
   const [routingDialogOpen, setRoutingDialogOpen] = useState(false);
-  const [createdLinkId, setCreatedLinkId] = useState<string | null>(null);
-  const [createdLinkUrl, setCreatedLinkUrl] = useState<string>("");
+  const [routingRules, setRoutingRules] = useState<MemoryRoutingRule[]>([]);
+  const [formUrl, setFormUrl] = useState<string>("");
 
   const handleSubmit = async (data: Omit<Parameters<typeof createLink>[0], 'organizationId'>) => {
     setLoading(true);
@@ -41,14 +42,14 @@ export default function LinkCreate({ organizationId, children, onSuccess }: Link
     const result = await createLink({
       ...data,
       organizationId,
+      routingRules: routingRules.length > 0 ? routingRules : undefined,
     });
 
     setLoading(false);
 
     if (result.success) {
-      setCreatedLinkId(result.data.id);
-      setCreatedLinkUrl(data.url);
       setOpen(false);
+      setRoutingRules([]); // Reset routing rules
       toast.success("Link created successfully");
       onSuccess?.();
     } else {
@@ -60,6 +61,22 @@ export default function LinkCreate({ organizationId, children, onSuccess }: Link
   const handleCancel = () => {
     setOpen(false);
     setError(null);
+    setRoutingRules([]);
+  };
+
+  const handleOpenRouting = () => {
+    // Get current URL from form
+    const form = document.querySelector('form');
+    const urlInput = form?.querySelector('input[id="url"]') as HTMLInputElement;
+    if (urlInput?.value) {
+      setFormUrl(urlInput.value);
+    }
+    setRoutingDialogOpen(true);
+  };
+
+  const handleSaveRoutingRules = (rules: MemoryRoutingRule[]) => {
+    setRoutingRules(rules);
+    setRoutingDialogOpen(false);
   };
 
   return (
@@ -86,24 +103,56 @@ export default function LinkCreate({ organizationId, children, onSuccess }: Link
           />
 
           {/* Error & Actions Footer */}
-          <div className="border-t px-6 py-4 flex items-center justify-end gap-2 bg-background">
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-1.5 mr-auto">
-                {error}
-              </p>
-            )}
+          <div className="border-t px-6 py-4 flex items-center justify-between gap-2 bg-background">
+            <div className="flex items-center gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleOpenRouting}
+                className="gap-1.5"
+              >
+                <Zap className="size-4" />
+                Smart Routing
+                {routingRules.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-full text-xs">
+                    {routingRules.length}
+                  </span>
+                )}
+              </Button>
+              {error && (
+                <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-1.5">
+                  {error}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading} onClick={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget.closest('form');
+                if (form) {
+                  const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                  form.dispatchEvent(submitEvent);
+                }
+              }}>
+                {loading && <span className="mr-2">⏳</span>}
+                Create link
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {createdLinkId && (
-        <RoutingFlowBuilder
-          linkId={createdLinkId}
-          open={routingDialogOpen}
-          onOpenChange={setRoutingDialogOpen}
-          defaultUrl={createdLinkUrl}
-        />
-      )}
+      {/* Routing Builder */}
+      <RoutingBuilderMemory
+        open={routingDialogOpen}
+        onOpenChange={setRoutingDialogOpen}
+        defaultUrl={formUrl}
+        initialRules={routingRules}
+        onSave={handleSaveRoutingRules}
+      />
     </>
   );
 }
