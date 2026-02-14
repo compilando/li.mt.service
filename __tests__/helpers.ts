@@ -120,6 +120,22 @@ export function createMockOrganization(overrides?: Record<string, unknown>) {
     };
 }
 
+export function createMockInvitation(overrides?: Record<string, unknown>) {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    return {
+        id: "inv-1",
+        organizationId: "org-1",
+        email: "invitee@example.com",
+        role: "member",
+        status: "pending",
+        expiresAt,
+        createdAt: now,
+        inviterId: "user-1",
+        ...overrides,
+    };
+}
+
 // ─── Mock Setup Helpers ──────────────────────────────────────────────────────
 
 /**
@@ -141,13 +157,22 @@ export function mockUnauthenticated() {
 /**
  * Set up organization membership mock
  */
-export function mockOrgMembership(exists = true) {
+export function mockOrgMembership(exists = true, role = "owner") {
     const mock = vi.mocked(prisma.member.findFirst);
     if (exists) {
-        mock.mockResolvedValue(createMockMember() as never);
+        mock.mockResolvedValue(createMockMember({ role }) as never);
     } else {
         mock.mockResolvedValue(null as never);
     }
+    return mock;
+}
+
+/**
+ * Set up organization membership mock with specific member data
+ */
+export function mockOrgMembershipWithData(member: ReturnType<typeof createMockMember> | null) {
+    const mock = vi.mocked(prisma.member.findFirst);
+    mock.mockResolvedValue(member as never);
     return mock;
 }
 

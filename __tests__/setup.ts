@@ -40,10 +40,26 @@ vi.mock("@/lib/prisma", () => ({
         member: {
             create: vi.fn(),
             findFirst: vi.fn(),
+            findUnique: vi.fn(),
+            findMany: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
+            count: vi.fn(),
         },
         organization: {
             create: vi.fn(),
             findUnique: vi.fn(),
+            findFirst: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
+        },
+        invitation: {
+            create: vi.fn(),
+            findUnique: vi.fn(),
+            findFirst: vi.fn(),
+            findMany: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
         },
         linkTag: {
             createMany: vi.fn(),

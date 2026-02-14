@@ -18,9 +18,11 @@ import {
     ArchiveRestore,
     Trash2,
     Check,
+    Pencil,
 } from "lucide-react";
 import { deleteLink, archiveLink } from "@/lib/actions/links";
 import { APP_URL } from "@/lib/constants";
+import { LinkEdit } from "@/components/dashboard/link-edit";
 
 interface LinkCardProps {
     link: {
@@ -34,12 +36,28 @@ interface LinkCardProps {
         tags: Array<{ tag: { id: string; name: string; color: string } }>;
         _count: { clicks: number };
         domain: { name: string } | null;
+        comments: string | null;
+        password: string | null;
+        expiresAt: Date | null;
+        utmSource: string | null;
+        utmMedium: string | null;
+        utmCampaign: string | null;
+        utmTerm: string | null;
+        utmContent: string | null;
+        ogTitle: string | null;
+        ogDescription: string | null;
+        ogImage: string | null;
+        iosTarget: string | null;
+        androidTarget: string | null;
+        organizationId: string;
     };
+    onUpdate?: () => void;
 }
 
-export function LinkCard({ link }: LinkCardProps) {
+export function LinkCard({ link, onUpdate }: LinkCardProps) {
     const [copied, setCopied] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
 
     const shortUrl = `${APP_URL}/r/${link.shortCode}`;
 
@@ -52,12 +70,18 @@ export function LinkCard({ link }: LinkCardProps) {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this link? This action cannot be undone.")) return;
         setDeleting(true);
-        await deleteLink(link.id);
+        const result = await deleteLink(link.id);
         setDeleting(false);
+        if (result.success && onUpdate) {
+            onUpdate();
+        }
     };
 
     const handleArchive = async () => {
-        await archiveLink(link.id, !link.archived);
+        const result = await archiveLink(link.id, !link.archived);
+        if (result.success && onUpdate) {
+            onUpdate();
+        }
     };
 
     const displayUrl = (() => {
@@ -148,6 +172,11 @@ export function LinkCard({ link }: LinkCardProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                                <Pencil className="size-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleCopy}>
                                 <Copy className="size-4" />
                                 Copy URL
@@ -185,6 +214,15 @@ export function LinkCard({ link }: LinkCardProps) {
                     </DropdownMenu>
                 </div>
             </div>
+
+            {/* Edit Dialog */}
+            <LinkEdit
+                link={link}
+                organizationId={link.organizationId}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                onSuccess={onUpdate}
+            />
         </div>
     );
 }

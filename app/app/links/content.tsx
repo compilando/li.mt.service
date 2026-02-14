@@ -20,6 +20,20 @@ interface Link {
     tags: Array<{ tag: { id: string; name: string; color: string } }>;
     _count: { clicks: number };
     domain: { name: string } | null;
+    comments: string | null;
+    password: string | null;
+    expiresAt: Date | null;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    utmTerm: string | null;
+    utmContent: string | null;
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogImage: string | null;
+    iosTarget: string | null;
+    androidTarget: string | null;
+    organizationId: string;
 }
 
 export function LinksPageContent() {
@@ -91,7 +105,7 @@ export function LinksPageContent() {
                     ))}
                 </div>
             ) : (
-                <LinkList links={links} />
+                <LinkList links={links} onUpdate={loadLinks} />
             )}
         </>
     );

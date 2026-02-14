@@ -44,6 +44,7 @@ export function NavUser({ user }: { user: User }) {
                 className="!size-8 rounded-lg"
                 square
                 name={user.email}
+                variant="beam"
               />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">Account</span>
@@ -60,7 +61,7 @@ export function NavUser({ user }: { user: User }) {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar size={24} className="rounded-lg" name={user.email} />
+                <Avatar size={24} className="rounded-lg" name={user.email} variant="beam" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Account</span>
                   <span className="truncate text-xs">{user.email}</span>
