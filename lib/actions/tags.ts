@@ -1,18 +1,10 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/user";
 import { createTagSchema, type CreateTagInput } from "@/lib/validations/tag";
-import { UnauthorizedError, ForbiddenError, type ActionResult } from "@/lib/errors";
+import { ForbiddenError, type ActionResult } from "@/lib/errors";
+import { requireAuth } from "@/lib/auth-guards";
 import { revalidatePath } from "next/cache";
-
-async function requireAuth() {
-    const session = await getSession();
-    if (!session?.user) {
-        throw new UnauthorizedError();
-    }
-    return session;
-}
 
 export async function createTag(input: CreateTagInput): Promise<ActionResult<{ id: string }>> {
     try {

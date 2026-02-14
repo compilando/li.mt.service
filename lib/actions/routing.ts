@@ -1,7 +1,6 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/user";
 import {
     createRoutingRuleSchema,
     updateRoutingRuleSchema,
@@ -19,47 +18,12 @@ import {
     type GetAliasesInput,
 } from "@/lib/validations/routing";
 import {
-    UnauthorizedError,
     NotFoundError,
     ForbiddenError,
     type ActionResult,
 } from "@/lib/errors";
+import { requireAuth, requireOrgMembership, requireLinkOwnership } from "@/lib/auth-guards";
 import { revalidatePath } from "next/cache";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-    const session = await getSession();
-    if (!session?.user) {
-        throw new UnauthorizedError();
-    }
-    return session;
-}
-
-async function requireOrgMembership(organizationId: string, userId: string) {
-    const member = await prisma.member.findFirst({
-        where: { organizationId, userId },
-    });
-    if (!member) {
-        throw new ForbiddenError("You are not a member of this organization");
-    }
-    return member;
-}
-
-async function requireLinkOwnership(linkId: string, userId: string) {
-    const link = await prisma.link.findUnique({
-        where: { id: linkId },
-        include: { organization: { include: { members: true } } },
-    });
-    if (!link) {
-        throw new NotFoundError("Link");
-    }
-    const isMember = link.organization.members.some((m) => m.userId === userId);
-    if (!isMember) {
-        throw new ForbiddenError();
-    }
-    return link;
-}
 
 // ─── Routing Rules ───────────────────────────────────────────────────────────
 

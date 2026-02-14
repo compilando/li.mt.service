@@ -1,16 +1,8 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/user";
-import { UnauthorizedError } from "@/lib/errors";
-
-async function requireAuth() {
-    const session = await getSession();
-    if (!session?.user) {
-        throw new UnauthorizedError();
-    }
-    return session;
-}
+import { NotFoundError } from "@/lib/errors";
+import { requireAuth, requireOrgMembership } from "@/lib/auth-guards";
 
 /**
  * Track a click on a link (called from the redirect route)
@@ -47,7 +39,19 @@ export async function trackClick(data: {
  * Get analytics for a specific link
  */
 export async function getLinkAnalytics(linkId: string, days: number = 30) {
-    await requireAuth();
+    const session = await requireAuth();
+
+    // Verify that the link belongs to an organization the user is a member of
+    const link = await prisma.link.findUnique({
+        where: { id: linkId },
+        select: { organizationId: true },
+    });
+
+    if (!link) {
+        throw new NotFoundError("Link");
+    }
+
+    await requireOrgMembership(link.organizationId, session.user.id);
 
     const since = new Date();
     since.setDate(since.getDate() - days);
@@ -121,7 +125,10 @@ export async function getLinkAnalytics(linkId: string, days: number = 30) {
  * Get overview analytics for an organization
  */
 export async function getOrganizationAnalytics(organizationId: string, days: number = 30) {
-    await requireAuth();
+    const session = await requireAuth();
+
+    // Verify user is a member of the organization
+    await requireOrgMembership(organizationId, session.user.id);
 
     const since = new Date();
     since.setDate(since.getDate() - days);

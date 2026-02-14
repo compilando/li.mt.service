@@ -1,7 +1,6 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/user";
 import {
     createOrganizationSchema,
     updateOrganizationSchema,
@@ -33,43 +32,10 @@ import {
     ForbiddenError,
     type ActionResult,
 } from "@/lib/errors";
+import { requireAuth, requireOrgMembership, requireOrgRole } from "@/lib/auth-guards";
 import { revalidatePath } from "next/cache";
 import { generateId } from "better-auth";
 import { sendInvitationEmail } from "@/lib/mail";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-    const session = await getSession();
-    if (!session?.user) {
-        throw new UnauthorizedError();
-    }
-    return session;
-}
-
-async function requireOrgMembership(organizationId: string, userId: string) {
-    const member = await prisma.member.findFirst({
-        where: { organizationId, userId },
-    });
-    if (!member) {
-        throw new ForbiddenError("You are not a member of this organization");
-    }
-    return member;
-}
-
-async function requireOrgRole(
-    organizationId: string,
-    userId: string,
-    allowedRoles: string[]
-) {
-    const member = await requireOrgMembership(organizationId, userId);
-    if (!allowedRoles.includes(member.role)) {
-        throw new ForbiddenError(
-            `Only ${allowedRoles.join(" or ")} can perform this action`
-        );
-    }
-    return member;
-}
 
 function generateSlugFromName(name: string): string {
     return name

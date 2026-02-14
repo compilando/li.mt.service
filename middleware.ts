@@ -34,6 +34,32 @@ export function middleware(request: NextRequest) {
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
     response.headers.set("X-DNS-Prefetch-Control", "on");
 
+    // Content Security Policy
+    response.headers.set(
+        "Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none';"
+    );
+
+    // HSTS - only in production
+    if (process.env.NODE_ENV === "production") {
+        response.headers.set(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains; preload"
+        );
+    }
+
+    // Permissions Policy
+    response.headers.set(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    );
+
     return response;
 }
 

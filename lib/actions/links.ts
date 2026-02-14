@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/user";
+import { Prisma } from "@/generated/prisma/client";
 import { generateShortCode, isReservedShortCode } from "@/lib/short-code";
 import {
     createLinkSchema,
@@ -11,49 +11,13 @@ import {
     type ListLinksInput,
 } from "@/lib/validations/link";
 import {
-    UnauthorizedError,
-    ConflictError,
     NotFoundError,
-    ForbiddenError,
     type ActionResult,
 } from "@/lib/errors";
+import { requireAuth, requireOrgMembership, requireLinkOwnership } from "@/lib/auth-guards";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-    const session = await getSession();
-    if (!session?.user) {
-        throw new UnauthorizedError();
-    }
-    return session;
-}
-
-async function requireOrgMembership(organizationId: string, userId: string) {
-    const member = await prisma.member.findFirst({
-        where: { organizationId, userId },
-    });
-    if (!member) {
-        throw new ForbiddenError("You are not a member of this organization");
-    }
-    return member;
-}
-
-async function requireLinkOwnership(linkId: string, userId: string) {
-    const link = await prisma.link.findUnique({
-        where: { id: linkId },
-        include: { organization: { include: { members: true } } },
-    });
-    if (!link) {
-        throw new NotFoundError("Link");
-    }
-    const isMember = link.organization.members.some((m) => m.userId === userId);
-    if (!isMember) {
-        throw new ForbiddenError();
-    }
-    return link;
-}
+import { passwordVerifyRateLimit } from "@/lib/rate-limit";
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
@@ -120,9 +84,9 @@ export async function createLink(input: CreateLinkInput): Promise<ActionResult<{
 
         revalidatePath("/app/links");
         return { success: true, data: { id: link.id, shortCode: link.shortCode } };
-    } catch (error: any) {
-        if (error.code) {
-            return { success: false, error: error.message, code: error.code };
+    } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error) {
+            return { success: false, error: error.message, code: (error as Error & { code: string }).code };
         }
         console.error("Error creating link:", error);
         return { success: false, error: "Failed to create link" };
@@ -165,9 +129,9 @@ export async function updateLink(input: UpdateLinkInput): Promise<ActionResult<{
 
         revalidatePath("/app/links");
         return { success: true, data: { id } };
-    } catch (error: any) {
-        if (error.code) {
-            return { success: false, error: error.message, code: error.code };
+    } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error) {
+            return { success: false, error: error.message, code: (error as Error & { code: string }).code };
         }
         console.error("Error updating link:", error);
         return { success: false, error: "Failed to update link" };
@@ -183,9 +147,9 @@ export async function deleteLink(id: string): Promise<ActionResult> {
 
         revalidatePath("/app/links");
         return { success: true, data: undefined };
-    } catch (error: any) {
-        if (error.code) {
-            return { success: false, error: error.message, code: error.code };
+    } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error) {
+            return { success: false, error: error.message, code: (error as Error & { code: string }).code };
         }
         console.error("Error deleting link:", error);
         return { success: false, error: "Failed to delete link" };
@@ -201,93 +165,101 @@ export async function archiveLink(id: string, archived: boolean): Promise<Action
 
         revalidatePath("/app/links");
         return { success: true, data: undefined };
-    } catch (error: any) {
-        if (error.code) {
-            return { success: false, error: error.message, code: error.code };
+    } catch (error: unknown) {
+        if (error instanceof Error && 'code' in error) {
+            return { success: false, error: error.message, code: (error as Error & { code: string }).code };
         }
         return { success: false, error: "Failed to archive link" };
     }
 }
 
 export async function getLinks(input: ListLinksInput) {
-    const session = await requireAuth();
-    await requireOrgMembership(input.organizationId, session.user.id);
+    try {
+        const session = await requireAuth();
+        await requireOrgMembership(input.organizationId, session.user.id);
 
-    const page = input.page ?? 1;
-    const pageSize = input.pageSize ?? 20;
-    const skip = (page - 1) * pageSize;
+        const page = input.page ?? 1;
+        const pageSize = input.pageSize ?? 20;
+        const skip = (page - 1) * pageSize;
 
-    const where: any = {
-        organizationId: input.organizationId,
-    };
+        const where: Prisma.LinkWhereInput = {
+            organizationId: input.organizationId,
+        };
 
-    if (input.search) {
-        where.OR = [
-            { url: { contains: input.search, mode: "insensitive" } },
-            { title: { contains: input.search, mode: "insensitive" } },
-            { shortCode: { contains: input.search, mode: "insensitive" } },
-        ];
+        if (input.search) {
+            where.OR = [
+                { url: { contains: input.search, mode: "insensitive" } },
+                { title: { contains: input.search, mode: "insensitive" } },
+                { shortCode: { contains: input.search, mode: "insensitive" } },
+            ];
+        }
+
+        if (input.tagId) {
+            where.tags = { some: { tagId: input.tagId } };
+        }
+
+        if (input.archived !== undefined) {
+            where.archived = input.archived;
+        }
+
+        const orderBy: Prisma.LinkOrderByWithRelationInput =
+            input.sortBy === "clicks"
+                ? { clicks: { _count: input.sortOrder ?? "desc" } }
+                : { [input.sortBy ?? "createdAt"]: input.sortOrder ?? "desc" };
+
+        const [links, total] = await Promise.all([
+            prisma.link.findMany({
+                where,
+                include: {
+                    tags: { include: { tag: true } },
+                    _count: { select: { clicks: true } },
+                    domain: true,
+                },
+                orderBy,
+                skip,
+                take: pageSize,
+            }),
+            prisma.link.count({ where }),
+        ]);
+
+        return {
+            links,
+            pagination: {
+                page,
+                pageSize,
+                total,
+                totalPages: Math.ceil(total / pageSize),
+            },
+        };
+    } catch (error: unknown) {
+        console.error("Error getting links:", error);
+        throw error; // Re-throw to maintain compatibility with existing code
     }
+}
 
-    if (input.tagId) {
-        where.tags = { some: { tagId: input.tagId } };
-    }
-
-    if (input.archived !== undefined) {
-        where.archived = input.archived;
-    }
-
-    const orderBy: any = {};
-    if (input.sortBy === "clicks") {
-        orderBy.clicks = { _count: input.sortOrder ?? "desc" };
-    } else {
-        orderBy[input.sortBy ?? "createdAt"] = input.sortOrder ?? "desc";
-    }
-
-    const [links, total] = await Promise.all([
-        prisma.link.findMany({
-            where,
+export async function getLinkById(id: string) {
+    try {
+        const session = await requireAuth();
+        const link = await prisma.link.findUnique({
+            where: { id },
             include: {
                 tags: { include: { tag: true } },
                 _count: { select: { clicks: true } },
                 domain: true,
+                organization: true,
             },
-            orderBy,
-            skip,
-            take: pageSize,
-        }),
-        prisma.link.count({ where }),
-    ]);
+        });
 
-    return {
-        links,
-        pagination: {
-            page,
-            pageSize,
-            total,
-            totalPages: Math.ceil(total / pageSize),
-        },
-    };
-}
+        if (!link) {
+            throw new NotFoundError("Link");
+        }
 
-export async function getLinkById(id: string) {
-    const session = await requireAuth();
-    const link = await prisma.link.findUnique({
-        where: { id },
-        include: {
-            tags: { include: { tag: true } },
-            _count: { select: { clicks: true } },
-            domain: true,
-            organization: true,
-        },
-    });
-
-    if (!link) {
-        throw new NotFoundError("Link");
+        await requireOrgMembership(link.organizationId, session.user.id);
+        return link;
+    } catch (error: unknown) {
+        console.error("Error getting link by ID:", error);
+        throw error; // Re-throw to maintain compatibility with existing code
     }
-
-    await requireOrgMembership(link.organizationId, session.user.id);
-    return link;
 }
 
 export async function verifyLinkPassword(
@@ -295,6 +267,17 @@ export async function verifyLinkPassword(
     password: string
 ): Promise<ActionResult<{ url: string }>> {
     try {
+        // Rate limiting to prevent brute force attacks
+        if (passwordVerifyRateLimit) {
+            const { success } = await passwordVerifyRateLimit.limit(shortCode);
+            if (!success) {
+                return {
+                    success: false,
+                    error: "Too many password attempts. Please try again later.",
+                };
+            }
+        }
+
         const link = await prisma.link.findUnique({
             where: { shortCode },
             select: {
@@ -341,7 +324,7 @@ export async function verifyLinkPassword(
         if (link.utmContent) destinationUrl.searchParams.set("utm_content", link.utmContent);
 
         return { success: true, data: { url: destinationUrl.toString() } };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error verifying password:", error);
         return { success: false, error: "Failed to verify password" };
     }

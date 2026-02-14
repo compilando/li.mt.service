@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { trackClick } from "@/lib/actions/analytics";
 import crypto from "crypto";
 import { evaluateRoutingRules, buildRequestContext } from "@/lib/routing-engine";
+import { redirectRateLimit } from "@/lib/rate-limit";
 
 /**
  * Short link redirector with smart routing
@@ -13,6 +14,24 @@ export async function GET(
     { params }: { params: Promise<{ shortCode: string }> },
 ) {
     const { shortCode } = await params;
+
+    // Rate limiting - prevent abuse
+    if (redirectRateLimit) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+            request.headers.get("x-real-ip") ||
+            "unknown";
+        const { success } = await redirectRateLimit.limit(ip);
+
+        if (!success) {
+            console.warn(`[Rate Limit] Too many requests from IP: ${ip}`);
+            return new NextResponse("Too many requests. Please try again later.", {
+                status: 429,
+                headers: {
+                    "Retry-After": "60",
+                },
+            });
+        }
+    }
 
     const link = await prisma.link.findUnique({
         where: { shortCode },
@@ -83,18 +102,31 @@ export async function GET(
         }
     }
 
-    // Build destination URL with UTM params
-    const destinationUrl = new URL(finalDestinationUrl);
-    if (link.utmSource) destinationUrl.searchParams.set("utm_source", link.utmSource);
-    if (link.utmMedium) destinationUrl.searchParams.set("utm_medium", link.utmMedium);
-    if (link.utmCampaign) destinationUrl.searchParams.set("utm_campaign", link.utmCampaign);
-    if (link.utmTerm) destinationUrl.searchParams.set("utm_term", link.utmTerm);
-    if (link.utmContent) destinationUrl.searchParams.set("utm_content", link.utmContent);
+    // Validate URL before redirecting to prevent open redirect attacks
+    try {
+        const url = new URL(finalDestinationUrl);
+        const allowedProtocols = ['http:', 'https:'];
 
-    // Track click (fire and forget)
-    trackClickAsync(request, link.id);
+        if (!allowedProtocols.includes(url.protocol)) {
+            console.error(`[Security] Blocked redirect to invalid protocol: ${url.protocol} for link ${shortCode}`);
+            return NextResponse.redirect(new URL("/", request.url));
+        }
 
-    return NextResponse.redirect(destinationUrl.toString());
+        // Build destination URL with UTM params
+        if (link.utmSource) url.searchParams.set("utm_source", link.utmSource);
+        if (link.utmMedium) url.searchParams.set("utm_medium", link.utmMedium);
+        if (link.utmCampaign) url.searchParams.set("utm_campaign", link.utmCampaign);
+        if (link.utmTerm) url.searchParams.set("utm_term", link.utmTerm);
+        if (link.utmContent) url.searchParams.set("utm_content", link.utmContent);
+
+        // Track click (fire and forget)
+        trackClickAsync(request, link.id);
+
+        return NextResponse.redirect(url.toString());
+    } catch (error) {
+        console.error(`[Security] Invalid redirect URL: ${finalDestinationUrl} for link ${shortCode}`);
+        return NextResponse.redirect(new URL("/", request.url));
+    }
 }
 
 /**

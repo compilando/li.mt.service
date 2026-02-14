@@ -35,6 +35,7 @@ import {
 import { APP_URL } from "@/lib/constants";
 import { QRCodeSVG } from "qrcode.react";
 import { generateRandomColor } from "@/lib/url";
+import { generateShortCode } from "@/lib/short-code";
 import { RoutingFlowBuilder } from "./routing-flow-builder";
 import { UrlInput } from "@/components/ui/url-input";
 
@@ -158,12 +159,7 @@ export default function LinkCreate({ organizationId, children, onSuccess }: Link
   };
 
   const handleGenerateShortCode = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 7; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setShortCode(code);
+    setShortCode(generateShortCode());
   };
 
   const handleToggleTag = (tagId: string) => {

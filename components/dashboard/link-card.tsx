@@ -23,6 +23,7 @@ import {
 import { deleteLink, archiveLink } from "@/lib/actions/links";
 import { APP_URL } from "@/lib/constants";
 import { LinkEdit } from "@/components/dashboard/link-edit";
+import { toast } from "sonner";
 
 interface LinkCardProps {
     link: {
@@ -64,6 +65,7 @@ export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
         await navigator.clipboard.writeText(shortUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+        toast.success("URL copied to clipboard");
     };
 
     const handleDelete = async () => {
@@ -71,15 +73,21 @@ export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
         setDeleting(true);
         const result = await deleteLink(link.id);
         setDeleting(false);
-        if (result.success && onUpdate) {
-            onUpdate();
+        if (result.success) {
+            toast.success("Link deleted successfully");
+            onUpdate?.();
+        } else {
+            toast.error(result.error || "Failed to delete link");
         }
     };
 
     const handleArchive = async () => {
         const result = await archiveLink(link.id, !link.archived);
-        if (result.success && onUpdate) {
-            onUpdate();
+        if (result.success) {
+            toast.success(link.archived ? "Link unarchived" : "Link archived");
+            onUpdate?.();
+        } else {
+            toast.error(result.error || "Failed to archive link");
         }
     };
 
