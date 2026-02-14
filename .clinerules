@@ -1,0 +1,67 @@
+# Cline Rules — Limt (li.mt.service)
+
+## Project Context
+- Read CLAUDE.md first for full project context, architecture, and conventions
+- This is a Next.js 16 SaaS link management platform
+- Stack: TypeScript + Prisma 7 + Better Auth + Shadcn/ui + Tailwind CSS v4
+
+## Code Rules
+
+### Must Do
+- Use `"use server"` directive for all server actions in `lib/actions/`
+- Return `ActionResult<T>` from all server actions (never throw errors to client)
+- Use Zod v4 validation schemas from `lib/validations/` for all user inputs
+- Import Zod from `"zod/v4"` (not `"zod"`)
+- Run `npx prisma generate` after any schema.prisma changes
+- Use `@/` import alias for all project imports
+- All data operations must be scoped to an organization
+- Check organization membership before any data access
+
+### Must NOT Do
+- Never edit files in `generated/` directory (Prisma auto-generated)
+- Never edit files in `components/ui/` directory (Shadcn managed)
+- Never use `any` type — use proper types or `unknown`
+- Never store secrets in code
+- Never expose internal error details to users
+- Never skip auth checks in server actions
+
+### Patterns to Follow
+- Page components: `page.tsx` (server) + `content.tsx` (client) pattern
+- State: `useActiveOrganization()` hook for organization context
+- Forms: React useState + server action on submit
+- Lists: Server action fetch in useEffect, client-side filtering
+- Errors: Use error classes from `lib/errors.ts`
+- UI: Shadcn components only, Lucide icons, Tailwind utility classes
+
+### File Naming
+- Components: PascalCase (e.g., `LinkCard.tsx`) or kebab-case (e.g., `link-card.tsx`)
+- Pages: lowercase `page.tsx`
+- Actions: kebab-case (e.g., `links.ts`)
+- Validations: kebab-case (e.g., `link.ts`)
+
+### Testing Checklist
+- Verify auth guard works (unauthenticated users redirect to /signin)
+- Verify organization scoping (users only see their org's data)
+- Verify short codes are unique and not reserved
+- Verify link redirector handles edge cases (expired, archived, password-protected)
+
+## Quick Reference
+
+### Add a new page
+1. Create `app/app/[name]/page.tsx` (server component with metadata)
+2. Create `app/app/[name]/content.tsx` (client component with UI)
+3. Add navigation item in `components/dashboard.tsx`
+
+### Add a new server action
+1. Create/update file in `lib/actions/`
+2. Add Zod schema in `lib/validations/`
+3. Use `requireAuth()` + `requireOrgMembership()` helpers
+4. Return `ActionResult<T>`
+5. Call `revalidatePath()` after mutations
+
+### Add a new Prisma model
+1. Add model to `prisma/schema.prisma`
+2. Run `npx prisma generate`
+3. Run `npx prisma db push` (dev) or `npx prisma migrate dev` (production)
+4. Create Zod validation schema
+5. Create server actions

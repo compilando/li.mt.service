@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Generated files (auto-generated, do not read/edit)
+generated/
+.next/
+
+# Build output
+out/
+dist/
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

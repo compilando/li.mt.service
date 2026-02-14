@@ -11,5 +11,6 @@ export default async function Page() {
     redirect("/app");
   }
 
-  return null;
+  // TODO: Landing page
+  redirect("/signin");
 }

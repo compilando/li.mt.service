@@ -53,7 +53,7 @@ export default function SignInForm() {
                       onClick={async () => {
                         await signIn.social({
                           provider: "google",
-                          callbackURL: "/dashboard",
+                          callbackURL: "/app",
                           fetchOptions: {
                             onRequest: () => {
                               setLoading(true);
@@ -97,7 +97,7 @@ export default function SignInForm() {
                       onClick={async () => {
                         await signIn.social({
                           provider: "github",
-                          callbackURL: "/dashboard",
+                          callbackURL: "/app",
                           fetchOptions: {
                             onRequest: () => {
                               setLoading(true);

@@ -1,21 +1,9 @@
-import { DashboardHeader } from "@/components/dashboard/header";
-import LinkCreate from "@/components/dashboard/link-create";
-import { Button } from "@/components/ui/button";
-import { getUser } from "@/lib/user";
-import { Plus } from "lucide-react";
+import { LinksPageContent } from "./content";
 
-export default async function Links() {
-  const user = await getUser();
-  return (
-    <>
-      <DashboardHeader title="Links">
-        <LinkCreate>
-          <Button>
-            <Plus />
-            New Link
-          </Button>
-        </LinkCreate>
-      </DashboardHeader>
-    </>
-  );
+export const metadata = {
+  title: "Links",
+};
+
+export default function LinksPage() {
+  return <LinksPageContent />;
 }

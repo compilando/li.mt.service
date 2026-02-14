@@ -3,15 +3,21 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Organization, User } from "@/generated/prisma/client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useListOrganizations } from "@/lib/auth-client";
-import { Link } from "lucide-react";
+import { BarChart3, Link } from "lucide-react";
+import { useActiveOrganization } from "@/hooks/use-active-organization";
 
 const items = [
   {
     title: "Links",
     url: "/app/links",
     icon: Link,
+  },
+  {
+    title: "Analytics",
+    url: "/app/analytics",
+    icon: BarChart3,
   },
 ];
 
@@ -23,17 +29,18 @@ export default function Dashboard({
   children: React.ReactNode;
 }) {
   const organizations = useListOrganizations();
-  const [activeOrganization, setActiveOrganization] =
-    useState<Organization | null>(null);
+  const { activeOrganization, setActiveOrganization } = useActiveOrganization();
+
   useEffect(() => {
-    let data = organizations.data;
+    const data = organizations.data;
     if (!data || activeOrganization) {
       return;
     }
     if (data.length > 0) {
       setActiveOrganization(data[0] as Organization);
     }
-  }, [organizations]);
+  }, [organizations.data]);
+
   return (
     <div className="bg-[var(--secondary)]">
       <SidebarProvider>

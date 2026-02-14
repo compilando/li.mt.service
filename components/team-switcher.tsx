@@ -28,9 +28,7 @@ export function OrganizationSwitcher({
 }: {
   organizations: Organization[];
   activeOrganization: Organization | null;
-  setActiveOrganization: React.Dispatch<
-    React.SetStateAction<Organization | null>
-  >;
+  setActiveOrganization: (org: Organization | null) => void;
 }) {
   const { isMobile } = useSidebar();
 
