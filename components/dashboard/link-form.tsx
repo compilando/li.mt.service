@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTagsByOrganization, createTag } from "@/lib/actions/tags";
+import { getDomains } from "@/lib/actions/domains";
 import {
     Link2,
     Loader2,
@@ -22,6 +24,7 @@ import {
     Image as ImageIcon,
     Download,
     Plus,
+    Globe,
 } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
 import { QRCodeSVG } from "qrcode.react";
@@ -36,6 +39,13 @@ interface TagOption {
     name: string;
     color: string;
     _count: { links: number };
+}
+
+interface DomainOption {
+    id: string;
+    name: string;
+    verified: boolean;
+    type: string;
 }
 
 type ActiveTab = "utm" | "password" | "expiration" | null;
@@ -59,6 +69,8 @@ interface LinkFormProps {
         ogDescription?: string;
         ogImage?: string;
         tags?: Array<{ tag: { id: string; name: string; color: string } }>;
+        domainId?: string;
+        domain?: { id: string; name: string };
     };
     onSubmit: (data: {
         url: string;
@@ -77,6 +89,7 @@ interface LinkFormProps {
         ogDescription?: string;
         ogImage?: string;
         tagIds?: string[];
+        domainId?: string;
     }) => Promise<void>;
     onCancel: () => void;
     loading: boolean;
@@ -106,6 +119,12 @@ export function LinkForm({
     const [tagSearch, setTagSearch] = useState("");
     const [creatingTag, setCreatingTag] = useState(false);
 
+    // Domains state
+    const [availableDomains, setAvailableDomains] = useState<DomainOption[]>([]);
+    const [selectedDomainId, setSelectedDomainId] = useState<string | undefined>(
+        initialData?.domainId || undefined
+    );
+
     // Form state - main fields
     const [url, setUrl] = useState(initialData?.url || "");
     const [shortCode, setShortCode] = useState(initialData?.shortCode || "");
@@ -131,11 +150,22 @@ export function LinkForm({
 
     // ─── Computed ────────────────────────────────────────────────────────────
 
+    const selectedDomain = useMemo(() => {
+        return availableDomains.find((d) => d.id === selectedDomainId);
+    }, [availableDomains, selectedDomainId]);
+
     const previewUrl = useMemo(() => {
         if (!url) return "";
         const code = shortCode || "xxxxxxx";
+        
+        // Use custom domain if selected and verified
+        if (selectedDomain && selectedDomain.verified) {
+            return `https://${selectedDomain.name}/${code}`;
+        }
+        
+        // Default URL
         return `${APP_URL}/r/${code}`;
-    }, [url, shortCode]);
+    }, [url, shortCode, selectedDomain]);
 
     const filteredTags = useMemo(() => {
         return availableTags.filter(
@@ -154,6 +184,27 @@ export function LinkForm({
     useEffect(() => {
         getTagsByOrganization(organizationId)
             .then((tags) => setAvailableTags(tags))
+            .catch(console.error);
+        
+        // Load verified domains
+        getDomains({
+            organizationId,
+            type: "all",
+            archived: false,
+            page: 1,
+            pageSize: 100,
+        })
+            .then((result) => {
+                const verifiedDomains = result.domains
+                    .filter((d: any) => d.verified)
+                    .map((d: any) => ({
+                        id: d.id,
+                        name: d.name,
+                        verified: d.verified,
+                        type: d.type,
+                    }));
+                setAvailableDomains(verifiedDomains);
+            })
             .catch(console.error);
     }, [organizationId]);
 
@@ -242,6 +293,7 @@ export function LinkForm({
             ogDescription: ogDescription || undefined,
             ogImage: ogImage || undefined,
             tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+            domainId: selectedDomainId || undefined,
         });
     };
 
@@ -266,11 +318,44 @@ export function LinkForm({
                     />
                 </div>
 
+                {/* Domain Selector */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="domain" className="flex items-center gap-1.5 text-sm font-medium">
+                        <Globe className="size-3.5" />
+                        Domain
+                    </Label>
+                    <Select value={selectedDomainId || "default"} onValueChange={(value) => setSelectedDomainId(value === "default" ? undefined : value)}>
+                        <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select domain" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default">
+                                <div className="flex items-center gap-2">
+                                    <Link2 className="size-3.5" />
+                                    <span>{APP_URL.replace(/^https?:\/\//, "")}</span>
+                                    <Badge variant="secondary" className="text-[10px] px-1">Default</Badge>
+                                </div>
+                            </SelectItem>
+                            {availableDomains.map((domain) => (
+                                <SelectItem key={domain.id} value={domain.id}>
+                                    <div className="flex items-center gap-2">
+                                        <Globe className="size-3.5" />
+                                        <span>{domain.name}</span>
+                                        {domain.type === "default" && (
+                                            <Badge variant="secondary" className="text-[10px] px-1">Branded</Badge>
+                                        )}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {/* Short Link */}
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="shortCode" className="flex items-center gap-1.5 text-sm font-medium">
-                            Short Link
+                            Short Code
                         </Label>
                         <Button
                             type="button"
@@ -284,9 +369,14 @@ export function LinkForm({
                         </Button>
                     </div>
                     <div className="flex items-center gap-0">
-                        <div className="flex items-center h-9 px-3 rounded-l-md border border-r-0 bg-muted text-sm text-muted-foreground whitespace-nowrap">
-                            <Link2 className="size-3.5 mr-1.5" />
-                            {APP_URL.replace(/^https?:\/\//, "")}/r/
+                        <div className="flex items-center h-9 px-3 rounded-l-md border border-r-0 bg-muted text-sm text-muted-foreground whitespace-nowrap overflow-hidden">
+                            <Link2 className="size-3.5 mr-1.5 flex-shrink-0" />
+                            <span className="truncate">
+                                {selectedDomain && selectedDomain.verified 
+                                    ? `${selectedDomain.name}/`
+                                    : `${APP_URL.replace(/^https?:\/\//, "")}/r/`
+                                }
+                            </span>
                         </div>
                         <Input
                             id="shortCode"

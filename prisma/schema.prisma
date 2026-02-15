@@ -205,6 +205,24 @@ model Domain {
   id             String       @id @default(cuid())
   name           String       @unique
   verified       Boolean      @default(false)
+  archived       Boolean      @default(false)
+  
+  // Type: custom (user-owned) or default (platform-provided branded domains)
+  type           String       @default("custom") // "custom" | "default"
+  
+  // DNS verification (only for custom domains)
+  verificationToken String?   // Token TXT para verificar propiedad del dominio
+  lastCheckedAt     DateTime? // Última verificación DNS exitosa
+  
+  // Configuración del dominio
+  notFoundUrl    String?      // URL cuando el shortlink no existe (404)
+  expiredUrl     String?      // URL cuando el shortlink ha expirado
+  placeholder    String?      // Placeholder URL para mostrar en el link builder
+  
+  // Branding (for default domains)
+  logo           String?      // Logo URL for branded default domains
+  description    String?      // Description for default domains
+  
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   links          Link[]
@@ -212,6 +230,8 @@ model Domain {
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId])
+  @@index([type])
+  @@index([verified])
   @@map("domain")
 }
 

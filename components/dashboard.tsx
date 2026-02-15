@@ -5,7 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Organization, User } from "@/generated/prisma/client";
 import { useEffect } from "react";
 import { useListOrganizations } from "@/lib/auth-client";
-import { BarChart3, Link, Settings } from "lucide-react";
+import { BarChart3, Globe, Link, Settings } from "lucide-react";
 import { useActiveOrganization } from "@/hooks/use-active-organization";
 
 const items = [
@@ -18,6 +18,11 @@ const items = [
     title: "Analytics",
     url: "/app/analytics",
     icon: BarChart3,
+  },
+  {
+    title: "Domains",
+    url: "/app/domains",
+    icon: Globe,
   },
   {
     title: "Settings",

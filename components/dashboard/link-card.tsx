@@ -62,7 +62,10 @@ export function LinkCard({ link, onUpdate, isLast, displaySettings, viewMode = "
     const [deleting, setDeleting] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
 
-    const shortUrl = `${APP_URL}/r/${link.shortCode}`;
+    // Use custom domain if available, otherwise use default
+    const shortUrl = link.domain 
+        ? `https://${link.domain.name}/${link.shortCode}`
+        : `${APP_URL}/r/${link.shortCode}`;
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(shortUrl);

@@ -11,7 +11,13 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:routing": "npx tsx prisma/seed-routing.ts",
+    "db:seed:domains": "npx tsx prisma/seed-domains.ts"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "type": "module",
   "dependencies": {

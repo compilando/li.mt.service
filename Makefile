@@ -61,6 +61,8 @@ setup: install db-up
 	@sleep 5
 	@echo "$(GREEN)Running database migrations...$(NC)"
 	$(MAKE) db-push
+	@echo "$(GREEN)Seeding database with test data...$(NC)"
+	$(MAKE) db-seed
 	@echo "$(GREEN)Setup complete! Run 'make dev' to start development$(NC)"
 
 ## dev: Start development server
@@ -155,8 +157,7 @@ db-studio:
 ## db-seed: Seed database with test data
 db-seed:
 	@echo "$(GREEN)Seeding database...$(NC)"
-	@echo "$(YELLOW)Note: Add seed script to package.json if needed$(NC)"
-	# $(PRISMA) db seed
+	$(PNPM) db:seed
 
 ## db-reset: Reset database (drop + migrate + seed)
 db-reset:
