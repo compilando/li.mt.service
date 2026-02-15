@@ -24,6 +24,7 @@ import { deleteLink, archiveLink } from "@/lib/actions/links";
 import { APP_URL } from "@/lib/constants";
 import { LinkEdit } from "@/components/dashboard/link-edit";
 import { toast } from "sonner";
+import type { LinkDisplaySettings } from "@/lib/validations/links-display";
 
 interface LinkCardProps {
     link: {
@@ -52,9 +53,11 @@ interface LinkCardProps {
     };
     onUpdate?: () => void;
     isLast?: boolean;
+    displaySettings?: LinkDisplaySettings;
+    viewMode?: "cards" | "rows";
 }
 
-export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
+export function LinkCard({ link, onUpdate, isLast, displaySettings, viewMode = "cards" }: LinkCardProps) {
     const [copied, setCopied] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -109,6 +112,152 @@ export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
         }
     })();
 
+    // Row mode for table view
+    if (viewMode === "rows") {
+        return (
+            <tr className="hover:bg-accent/50 transition-all">
+                {displaySettings?.displayProperties.shortLink && (
+                    <td className="px-4 py-3">
+                        <button
+                            onClick={handleCopy}
+                            className="text-sm text-primary hover:underline flex items-center gap-1"
+                        >
+                            {copied ? (
+                                <Check className="size-3 text-green-600" />
+                            ) : (
+                                <Copy className="size-3" />
+                            )}
+                            {link.shortCode}
+                        </button>
+                    </td>
+                )}
+                {displaySettings?.displayProperties.destinationUrl && (
+                    <td className="px-4 py-3">
+                        <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-muted-foreground hover:text-foreground truncate flex items-center gap-1 max-w-md"
+                        >
+                            <ExternalLink className="size-3 flex-shrink-0" />
+                            <span className="truncate">{displayUrl}</span>
+                        </a>
+                    </td>
+                )}
+                {displaySettings?.displayProperties.title && (
+                    <td className="px-4 py-3">
+                        <span className="text-sm font-medium truncate">
+                            {link.title || "-"}
+                        </span>
+                    </td>
+                )}
+                {displaySettings?.displayProperties.createdDate && (
+                    <td className="px-4 py-3">
+                        <span className="text-sm text-muted-foreground">
+                            {new Date(link.createdAt).toLocaleDateString()}
+                        </span>
+                    </td>
+                )}
+                {displaySettings?.displayProperties.tags && (
+                    <td className="px-4 py-3">
+                        <div className="flex gap-1 flex-wrap">
+                            {link.tags.length > 0 ? (
+                                link.tags.map(({ tag }) => (
+                                    <Badge
+                                        key={tag.id}
+                                        variant="outline"
+                                        className="text-xs"
+                                        style={{ borderColor: tag.color, color: tag.color }}
+                                    >
+                                        {tag.name}
+                                    </Badge>
+                                ))
+                            ) : (
+                                <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                        </div>
+                    </td>
+                )}
+                {displaySettings?.displayProperties.analytics && (
+                    <td className="px-4 py-3 text-right">
+                        <span className="text-sm font-semibold tabular-nums">
+                            {link._count.clicks}
+                        </span>
+                    </td>
+                )}
+                <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8">
+                                <MoreHorizontal className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                                <Pencil className="size-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleCopy}>
+                                <Copy className="size-4" />
+                                Copy URL
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <a href={link.url} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="size-4" />
+                                    Open destination
+                                </a>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleArchive}>
+                                {link.archived ? (
+                                    <>
+                                        <ArchiveRestore className="size-4" />
+                                        Unarchive
+                                    </>
+                                ) : (
+                                    <>
+                                        <Archive className="size-4" />
+                                        Archive
+                                    </>
+                                )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="text-destructive focus:text-destructive"
+                            >
+                                <Trash2 className="size-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <LinkEdit
+                        link={link}
+                        organizationId={link.organizationId}
+                        open={editOpen}
+                        onOpenChange={setEditOpen}
+                        onSuccess={onUpdate}
+                    />
+                </td>
+            </tr>
+        );
+    }
+
+    // Card mode (default)
+    const props = displaySettings?.displayProperties ?? {
+        shortLink: true,
+        destinationUrl: true,
+        title: true,
+        description: false,
+        createdDate: false,
+        creator: false,
+        tags: true,
+        analytics: true,
+    };
+
     return (
         <div
             className={`group p-4 hover:bg-accent/50 transition-all ${link.archived ? "opacity-60" : ""
@@ -118,55 +267,75 @@ export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
                 {/* Left side: Link info */}
                 <div className="flex-1 min-w-0 space-y-1">
                     {/* Title or short URL */}
-                    <div className="flex items-center gap-2">
-                        {faviconUrl && (
-                            <img
-                                src={faviconUrl}
-                                alt=""
-                                className="size-4 flex-shrink-0 rounded-sm"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                }}
-                            />
-                        )}
-                        <h3 className="font-medium truncate">
-                            {link.title || link.shortCode}
-                        </h3>
-                        {link.archived && (
-                            <Badge variant="secondary" className="text-xs">
-                                Archived
-                            </Badge>
-                        )}
-                    </div>
+                    {props.title && (
+                        <div className="flex items-center gap-2">
+                            {faviconUrl && (
+                                <img
+                                    src={faviconUrl}
+                                    alt=""
+                                    className="size-4 flex-shrink-0 rounded-sm"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                    }}
+                                />
+                            )}
+                            <h3 className="font-medium truncate">
+                                {link.title || link.shortCode}
+                            </h3>
+                            {link.archived && (
+                                <Badge variant="secondary" className="text-xs">
+                                    Archived
+                                </Badge>
+                            )}
+                        </div>
+                    )}
 
                     {/* Short URL */}
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={handleCopy}
-                            className="text-sm text-primary hover:underline flex items-center gap-1 truncate"
-                        >
-                            {copied ? (
-                                <Check className="size-3 text-green-600" />
-                            ) : (
-                                <Copy className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                            {shortUrl}
-                        </button>
-                    </div>
+                    {props.shortLink && (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleCopy}
+                                className="text-sm text-primary hover:underline flex items-center gap-1 truncate"
+                            >
+                                {copied ? (
+                                    <Check className="size-3 text-green-600" />
+                                ) : (
+                                    <Copy className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                                {shortUrl}
+                            </button>
+                        </div>
+                    )}
 
                     {/* Destination URL */}
-                    <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-muted-foreground hover:text-foreground truncate flex items-center gap-1 max-w-md"
-                    >
-                        <ExternalLink className="size-3 flex-shrink-0" />
-                        <span className="truncate">{displayUrl}</span>
-                    </a>
+                    {props.destinationUrl && (
+                        <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-muted-foreground hover:text-foreground truncate flex items-center gap-1 max-w-md"
+                        >
+                            <ExternalLink className="size-3 flex-shrink-0" />
+                            <span className="truncate">{displayUrl}</span>
+                        </a>
+                    )}
+
+                    {/* Description */}
+                    {props.description && link.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                            {link.description}
+                        </p>
+                    )}
+
+                    {/* Created Date */}
+                    {props.createdDate && (
+                        <p className="text-xs text-muted-foreground">
+                            Created {new Date(link.createdAt).toLocaleDateString()}
+                        </p>
+                    )}
 
                     {/* Tags */}
-                    {link.tags.length > 0 && (
+                    {props.tags && link.tags.length > 0 && (
                         <div className="flex gap-1 pt-1">
                             {link.tags.map(({ tag }) => (
                                 <Badge
@@ -185,15 +354,17 @@ export function LinkCard({ link, onUpdate, isLast }: LinkCardProps) {
                 {/* Right side: Stats & Actions */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                     {/* Click count */}
-                    <div className="text-center relative">
-                        <div className="flex items-center justify-center gap-1">
-                            <p className="text-lg font-semibold tabular-nums">{link._count.clicks}</p>
-                            {link._count.clicks > 0 && (
-                                <span className="absolute -top-1 -right-1 size-2 bg-green-500 rounded-full animate-pulse" />
-                            )}
+                    {props.analytics && (
+                        <div className="text-center relative">
+                            <div className="flex items-center justify-center gap-1">
+                                <p className="text-lg font-semibold tabular-nums">{link._count.clicks}</p>
+                                {link._count.clicks > 0 && (
+                                    <span className="absolute -top-1 -right-1 size-2 bg-green-500 rounded-full animate-pulse" />
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">clicks</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">clicks</p>
-                    </div>
+                    )}
 
                     {/* Actions */}
                     <DropdownMenu>

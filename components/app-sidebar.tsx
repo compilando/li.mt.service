@@ -5,6 +5,7 @@ import * as React from "react";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { OrganizationSwitcher } from "@/components/team-switcher";
+import { UsageWidget } from "@/components/usage-widget";
 import {
   Sidebar,
   SidebarContent,
@@ -61,6 +62,7 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <UsageWidget />
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />

@@ -4,11 +4,15 @@ import { useEffect, useState, useCallback } from "react";
 import { DashboardHeader, DashboardPageHeader } from "@/components/dashboard/header";
 import LinkCreate from "@/components/dashboard/link-create";
 import { LinkList } from "@/components/dashboard/link-list";
+import { LinksFilter } from "@/components/dashboard/links-filter";
+import { LinksDisplay } from "@/components/dashboard/links-display";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Link as LinkIcon } from "lucide-react";
 import { useActiveOrganization } from "@/hooks/use-active-organization";
 import { getLinks } from "@/lib/actions/links";
+import { getTagsByOrganization } from "@/lib/actions/tags";
+import type { LinkDisplaySettings, LinkFilters } from "@/lib/validations/links-display";
 
 interface Link {
     id: string;
@@ -39,6 +43,33 @@ export function LinksPageContent() {
     const { activeOrganization } = useActiveOrganization();
     const [links, setLinks] = useState<Link[]>([]);
     const [loading, setLoading] = useState(true);
+    const [tags, setTags] = useState<Array<{ id: string; name: string; color: string }>>([]);
+    
+    // Filters state
+    const [filters, setFilters] = useState<LinkFilters>({
+        tagIds: [],
+        domainIds: [],
+        creatorIds: [],
+        search: "",
+    });
+
+    // Display settings state
+    const [displaySettings, setDisplaySettings] = useState<LinkDisplaySettings>({
+        viewMode: "cards",
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        showArchived: false,
+        displayProperties: {
+            shortLink: true,
+            destinationUrl: true,
+            title: true,
+            description: false,
+            createdDate: false,
+            creator: false,
+            tags: true,
+            analytics: true,
+        },
+    });
 
     const loadLinks = useCallback(() => {
         if (!activeOrganization) return;
@@ -47,36 +78,31 @@ export function LinksPageContent() {
         getLinks({
             organizationId: activeOrganization.id,
             page: 1,
-            pageSize: 50,
-            sortBy: "createdAt",
-            sortOrder: "desc",
+            pageSize: 100,
+            sortBy: displaySettings.sortBy,
+            sortOrder: displaySettings.sortOrder,
         })
             .then((result) => {
                 setLinks(result.links);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
-    }, [activeOrganization]);
+    }, [activeOrganization, displaySettings.sortBy, displaySettings.sortOrder]);
 
+    // Load tags
     useEffect(() => {
         if (!activeOrganization) return;
 
-        // Fetching data on mount - this is the correct pattern for data fetching
-        // eslint-disable-next-line
-        setLoading(true);
-        getLinks({
-            organizationId: activeOrganization.id,
-            page: 1,
-            pageSize: 50,
-            sortBy: "createdAt",
-            sortOrder: "desc",
-        })
-            .then((result) => {
-                setLinks(result.links);
+        getTagsByOrganization(activeOrganization.id)
+            .then((tags) => {
+                setTags(tags.map(t => ({ id: t.id, name: t.name, color: t.color })));
             })
-            .catch(console.error)
-            .finally(() => setLoading(false));
+            .catch(console.error);
     }, [activeOrganization]);
+
+    useEffect(() => {
+        loadLinks();
+    }, [loadLinks]);
 
     if (!activeOrganization) {
         return null;
@@ -108,6 +134,21 @@ export function LinksPageContent() {
                     description="Overview all the links of your organization, create as many as needed to keep your data isolated."
                 />
 
+                {/* Filters and Display Controls */}
+                <div className="flex items-center gap-2 mb-6">
+                    <LinksFilter
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        availableTags={tags}
+                        availableDomains={[]} // TODO: Load domains
+                        availableCreators={[]} // TODO: Load creators
+                    />
+                    <LinksDisplay
+                        settings={displaySettings}
+                        onSettingsChange={setDisplaySettings}
+                    />
+                </div>
+
                 {loading ? (
                     <div className="space-y-2">
                         {[...Array(3)].map((_, i) => (
@@ -119,7 +160,13 @@ export function LinksPageContent() {
                         ))}
                     </div>
                 ) : (
-                    <LinkList links={links} onUpdate={loadLinks} />
+                    <LinkList
+                        links={links}
+                        onUpdate={loadLinks}
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        displaySettings={displaySettings}
+                    />
                 )}
             </div>
         </>

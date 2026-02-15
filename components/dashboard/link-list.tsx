@@ -4,6 +4,7 @@ import { LinkCard } from "@/components/dashboard/link-card";
 import { Input } from "@/components/ui/input";
 import { Search, LinkIcon } from "lucide-react";
 import { useState, useMemo } from "react";
+import type { LinkDisplaySettings, LinkFilters } from "@/lib/validations/links-display";
 
 interface LinkListProps {
     links: Array<{
@@ -31,21 +32,47 @@ interface LinkListProps {
         organizationId: string;
     }>;
     onUpdate?: () => void;
+    filters: LinkFilters;
+    onFiltersChange: (filters: LinkFilters) => void;
+    displaySettings: LinkDisplaySettings;
 }
 
-export function LinkList({ links, onUpdate }: LinkListProps) {
-    const [search, setSearch] = useState("");
-
+export function LinkList({ links, onUpdate, filters, onFiltersChange, displaySettings }: LinkListProps) {
     const filteredLinks = useMemo(() => {
-        if (!search) return links;
-        const q = search.toLowerCase();
-        return links.filter(
-            (link) =>
-                link.url.toLowerCase().includes(q) ||
-                link.shortCode.toLowerCase().includes(q) ||
-                link.title?.toLowerCase().includes(q),
-        );
-    }, [links, search]);
+        let result = links;
+
+        // Apply search filter
+        if (filters.search) {
+            const q = filters.search.toLowerCase();
+            result = result.filter(
+                (link) =>
+                    link.url.toLowerCase().includes(q) ||
+                    link.shortCode.toLowerCase().includes(q) ||
+                    link.title?.toLowerCase().includes(q),
+            );
+        }
+
+        // Apply tag filter
+        if (filters.tagIds.length > 0) {
+            result = result.filter((link) =>
+                link.tags.some((lt) => filters.tagIds.includes(lt.tag.id))
+            );
+        }
+
+        // Apply domain filter
+        if (filters.domainIds.length > 0) {
+            result = result.filter((link) =>
+                link.domain && filters.domainIds.includes(link.domain.name)
+            );
+        }
+
+        // Apply archived filter from display settings
+        if (!displaySettings.showArchived) {
+            result = result.filter((link) => !link.archived);
+        }
+
+        return result;
+    }, [links, filters, displaySettings.showArchived]);
 
     return (
         <div className="space-y-4">
@@ -55,8 +82,8 @@ export function LinkList({ links, onUpdate }: LinkListProps) {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input
                         placeholder="Search links..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        value={filters.search}
+                        onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
                         className="pl-9"
                     />
                 </div>
@@ -64,16 +91,74 @@ export function LinkList({ links, onUpdate }: LinkListProps) {
 
             {/* Links */}
             {filteredLinks.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
-                    {filteredLinks.map((link, index) => (
-                        <LinkCard
-                            key={link.id}
-                            link={link}
-                            onUpdate={onUpdate}
-                            isLast={index === filteredLinks.length - 1}
-                        />
-                    ))}
-                </div>
+                displaySettings.viewMode === "cards" ? (
+                    <div className="border rounded-lg overflow-hidden">
+                        {filteredLinks.map((link, index) => (
+                            <LinkCard
+                                key={link.id}
+                                link={link}
+                                onUpdate={onUpdate}
+                                isLast={index === filteredLinks.length - 1}
+                                displaySettings={displaySettings}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-muted/50 border-b">
+                                    <tr>
+                                        {displaySettings.displayProperties.shortLink && (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Short Link
+                                            </th>
+                                        )}
+                                        {displaySettings.displayProperties.destinationUrl && (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Destination
+                                            </th>
+                                        )}
+                                        {displaySettings.displayProperties.title && (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Title
+                                            </th>
+                                        )}
+                                        {displaySettings.displayProperties.createdDate && (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Created
+                                            </th>
+                                        )}
+                                        {displaySettings.displayProperties.tags && (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Tags
+                                            </th>
+                                        )}
+                                        {displaySettings.displayProperties.analytics && (
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                                Clicks
+                                            </th>
+                                        )}
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {filteredLinks.map((link) => (
+                                        <LinkCard
+                                            key={link.id}
+                                            link={link}
+                                            onUpdate={onUpdate}
+                                            displaySettings={displaySettings}
+                                            viewMode="rows"
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )
             ) : links.length > 0 ? (
                 <EmptyState
                     title="No links found"

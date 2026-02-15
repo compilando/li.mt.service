@@ -5,10 +5,11 @@ import {
     APP_URL,
     SHORT_CODE_LENGTH,
     SHORT_CODE_ALPHABET,
-    PLAN_LIMITS,
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
+    RESERVED_SHORT_CODES,
 } from "@/lib/constants";
+import { PLANS } from "@/lib/plans";
 
 describe("App Constants", () => {
     it("has correct app name", () => {
@@ -46,34 +47,34 @@ describe("Short Code Configuration", () => {
 
 describe("Plan Limits", () => {
     it("has free, pro, and business plans", () => {
-        expect(PLAN_LIMITS).toHaveProperty("free");
-        expect(PLAN_LIMITS).toHaveProperty("pro");
-        expect(PLAN_LIMITS).toHaveProperty("business");
+        expect(PLANS).toHaveProperty("free");
+        expect(PLANS).toHaveProperty("pro");
+        expect(PLANS).toHaveProperty("business");
     });
 
     it("free plan has restrictive limits", () => {
-        expect(PLAN_LIMITS.free.linksPerMonth).toBeGreaterThan(0);
-        expect(PLAN_LIMITS.free.linksPerMonth).toBeLessThanOrEqual(100);
-        expect(PLAN_LIMITS.free.domains).toBe(0);
+        expect(PLANS.free.limits.links).toBeGreaterThan(0);
+        expect(PLANS.free.limits.links).toBeLessThanOrEqual(100);
+        expect(PLANS.free.limits.domains).toBe(0);
     });
 
     it("pro plan has higher limits than free", () => {
-        expect(PLAN_LIMITS.pro.linksPerMonth).toBeGreaterThan(PLAN_LIMITS.free.linksPerMonth);
-        expect(PLAN_LIMITS.pro.clicksPerMonth).toBeGreaterThan(PLAN_LIMITS.free.clicksPerMonth);
-        expect(PLAN_LIMITS.pro.domains).toBeGreaterThan(PLAN_LIMITS.free.domains);
+        expect(PLANS.pro.limits.links).toBeGreaterThan(PLANS.free.limits.links);
+        expect(PLANS.pro.limits.clicksPerMonth).toBeGreaterThan(PLANS.free.limits.clicksPerMonth);
+        expect(PLANS.pro.limits.domains).toBeGreaterThan(PLANS.free.limits.domains);
     });
 
     it("business plan has unlimited (-1) or very high limits", () => {
-        expect(PLAN_LIMITS.business.linksPerMonth).toBe(-1);
-        expect(PLAN_LIMITS.business.clicksPerMonth).toBe(-1);
-        expect(PLAN_LIMITS.business.domains).toBe(-1);
+        expect(PLANS.business.limits.links).toBe(-1);
+        expect(PLANS.business.limits.clicksPerMonth).toBeGreaterThanOrEqual(100000);
+        expect(PLANS.business.limits.tags).toBe(-1);
     });
 
     it("all plans have required limit fields", () => {
-        const requiredFields = ["linksPerMonth", "clicksPerMonth", "domains", "apiKeys", "tags"];
-        for (const plan of Object.values(PLAN_LIMITS)) {
+        const requiredFields = ["links", "clicksPerMonth", "domains", "apiKeys", "tags"];
+        for (const plan of Object.values(PLANS)) {
             for (const field of requiredFields) {
-                expect(plan).toHaveProperty(field);
+                expect(plan.limits).toHaveProperty(field);
             }
         }
     });

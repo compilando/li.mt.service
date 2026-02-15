@@ -250,10 +250,17 @@ export async function getLinks(input: ListLinksInput) {
             where.archived = input.archived;
         }
 
-        const orderBy: Prisma.LinkOrderByWithRelationInput =
-            input.sortBy === "clicks"
-                ? { clicks: { _count: input.sortOrder ?? "desc" } }
-                : { [input.sortBy ?? "createdAt"]: input.sortOrder ?? "desc" };
+        let orderBy: Prisma.LinkOrderByWithRelationInput;
+        
+        if (input.sortBy === "clicks") {
+            orderBy = { clicks: { _count: input.sortOrder ?? "desc" } };
+        } else if (input.sortBy === "title") {
+            orderBy = { title: input.sortOrder ?? "desc" };
+        } else if (input.sortBy === "shortCode") {
+            orderBy = { shortCode: input.sortOrder ?? "desc" };
+        } else {
+            orderBy = { [input.sortBy ?? "createdAt"]: input.sortOrder ?? "desc" };
+        }
 
         const [links, total] = await Promise.all([
             prisma.link.findMany({

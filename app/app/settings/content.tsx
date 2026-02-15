@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useActiveOrganization } from "@/hooks/use-active-organization";
+import { usePlanGuard } from "@/hooks/use-plan-guard";
 import { DashboardHeader, DashboardPageHeader } from "@/components/dashboard/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -85,6 +86,205 @@ const roleColors = {
     admin: "bg-blue-100 text-blue-800",
     member: "bg-gray-100 text-gray-800",
 };
+
+function BillingTab({ isOwner }: { isOwner: boolean }) {
+    const { activeOrganization } = useActiveOrganization();
+    const planGuard = usePlanGuard();
+    const { changePlan } = require("@/lib/actions/plans");
+    const [isChanging, setIsChanging] = useState(false);
+
+    if (!activeOrganization) return null;
+
+    const handleUpgrade = async (newPlan: "pro" | "business") => {
+        if (!isOwner) return;
+        setIsChanging(true);
+        const result = await changePlan({
+            organizationId: activeOrganization.id,
+            planId: newPlan,
+        });
+        if (result.success) {
+            window.location.reload();
+        }
+        setIsChanging(false);
+    };
+
+    const currentPlan = planGuard.getPlanId();
+    const upgradePlan = planGuard.getUpgradePlan();
+
+    return (
+        <TabsContent value="billing" className="space-y-4">
+            {/* Current Plan */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Current Plan</CardTitle>
+                            <CardDescription>
+                                You are currently on the {planGuard.getPlanName()} plan
+                            </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="text-lg px-4 py-2">
+                            {planGuard.getPlanName()}
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {planGuard.loading ? (
+                        <p className="text-sm text-muted-foreground">Loading plan information...</p>
+                    ) : (
+                        <>
+                            <div className="mb-4">
+                                <p className="text-2xl font-bold">
+                                    ${planGuard.getPrice()}
+                                    <span className="text-sm font-normal text-muted-foreground">/month</span>
+                                </p>
+                            </div>
+                            {upgradePlan && isOwner && (
+                                <Button
+                                    onClick={() => handleUpgrade(upgradePlan.id as "pro" | "business")}
+                                    disabled={isChanging}
+                                >
+                                    {isChanging ? "Upgrading..." : `Upgrade to ${upgradePlan.name}`}
+                                </Button>
+                            )}
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Usage & Limits */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Usage & Limits</CardTitle>
+                    <CardDescription>Track your resource usage against plan limits</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {planGuard.loading ? (
+                        <p className="text-sm text-muted-foreground">Loading usage...</p>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Links */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Links this month</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {planGuard.getUsage("links")} / {planGuard.isUnlimited("links") ? "∞" : planGuard.getLimit("links")}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                    <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                            width: planGuard.isUnlimited("links")
+                                                ? "0%"
+                                                : `${Math.min(100, planGuard.getUsagePercentage("links"))}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Tags */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Tags</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {planGuard.getUsage("tags")} / {planGuard.isUnlimited("tags") ? "∞" : planGuard.getLimit("tags")}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                    <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                            width: planGuard.isUnlimited("tags")
+                                                ? "0%"
+                                                : `${Math.min(100, planGuard.getUsagePercentage("tags"))}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Domains */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Custom domains</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {planGuard.getUsage("domains")} / {planGuard.isUnlimited("domains") ? "∞" : planGuard.getLimit("domains")}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                    <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                            width: planGuard.isUnlimited("domains")
+                                                ? "0%"
+                                                : `${Math.min(100, planGuard.getUsagePercentage("domains"))}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Members */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Team members</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {planGuard.getUsage("members")} / {planGuard.isUnlimited("members") ? "∞" : planGuard.getLimit("members")}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                    <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                            width: planGuard.isUnlimited("members")
+                                                ? "0%"
+                                                : `${Math.min(100, planGuard.getUsagePercentage("members"))}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Clicks */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Clicks this month</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {planGuard.getUsage("clicksPerMonth").toLocaleString()} /{" "}
+                                        {planGuard.isUnlimited("clicksPerMonth") ? "∞" : planGuard.getLimit("clicksPerMonth").toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                    <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                            width: planGuard.isUnlimited("clicksPerMonth")
+                                                ? "0%"
+                                                : `${Math.min(100, planGuard.getUsagePercentage("clicksPerMonth"))}%`,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* View All Plans */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Need more?</CardTitle>
+                    <CardDescription>Explore all available plans</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button variant="outline" asChild>
+                        <a href="/pricing" target="_blank" rel="noopener noreferrer">
+                            View all plans
+                        </a>
+                    </Button>
+                </CardContent>
+            </Card>
+        </TabsContent>
+    );
+}
 
 export function SettingsPageContent() {
     const { activeOrganization } = useActiveOrganization();
@@ -239,6 +439,7 @@ export function SettingsPageContent() {
                 <Tabs defaultValue="general" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="general">General</TabsTrigger>
+                        <TabsTrigger value="billing">Billing</TabsTrigger>
                         <TabsTrigger value="members">Members</TabsTrigger>
                         <TabsTrigger value="invitations">Invitations</TabsTrigger>
                         {!isPersonalOrg && <TabsTrigger value="danger">Danger Zone</TabsTrigger>}
@@ -290,6 +491,8 @@ export function SettingsPageContent() {
                             </CardContent>
                         </Card>
                     </TabsContent>
+
+                    <BillingTab isOwner={isOwner} />
 
                     <TabsContent value="members" className="space-y-4">
                         <Card>

@@ -35,10 +35,31 @@ import {
 import Avatar from "boring-avatars";
 import { signOut } from "@/lib/auth-client";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { usePlanGuard } from "@/hooks/use-plan-guard";
 
 export function NavUser({ user }: { user: User }) {
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const planGuard = usePlanGuard();
+
+  const handleUpgrade = () => {
+    const upgradePlan = planGuard.getUpgradePlan();
+    if (upgradePlan) {
+      router.push("/app/settings?tab=billing");
+    } else {
+      router.push("/pricing");
+    }
+  };
+
+  const handleAccount = () => {
+    router.push("/app/settings");
+  };
+
+  const handleBilling = () => {
+    router.push("/app/settings?tab=billing");
+  };
 
   return (
     <SidebarMenu>
@@ -80,22 +101,22 @@ export function NavUser({ user }: { user: User }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleUpgrade}>
                 <SparklesIcon />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleAccount}>
                 <BadgeCheckIcon />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleBilling}>
                 <CreditCardIcon />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 <BellIcon />
                 Notifications
               </DropdownMenuItem>

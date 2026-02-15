@@ -90,7 +90,7 @@ export const listLinksSchema = z.object({
     search: z.string().optional(),
     tagId: z.string().optional(),
     archived: z.boolean().optional(),
-    sortBy: z.enum(["createdAt", "clicks", "updatedAt"]).default("createdAt"),
+    sortBy: z.enum(["createdAt", "clicks", "updatedAt", "title", "shortCode"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 

@@ -92,8 +92,34 @@ model Organization {
   tags             Tag[]
   apiKeys          ApiKey[]
   conditionAliases ConditionAlias[]
+  subscription     Subscription?
 
   @@map("organization")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan                 String    // "free", "pro", "business"
+  status               String    @default("active") // "active", "canceled", "past_due", "trialing"
+  currentPeriodStart   DateTime  @default(now())
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  
+  // Stripe integration (preparado para futuro)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripeProductId      String?
+  stripePriceId        String?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@map("subscription")
 }
 
 model Member {
